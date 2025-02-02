@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cabb7d4c6b6185b459eb7ced45a1866a, type: 3}
+  m_Name: New Items Data
+  m_EditorClassIdentifier: 
+  items:
+  - itemName: zip
+    range: 2
+    cost: 50
+    damage: 20
+    typeAction: 4
+    description: 
+    quantity: 4
+  - itemName: zap
+    range: 2
+    cost: 50
+    damage: 20
+    typeAction: 7
+    description: 
+    quantity: 4
