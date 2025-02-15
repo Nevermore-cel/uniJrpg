@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEditor;
-using System.Collections.Generic;
 
 [CustomEditor(typeof(UnitData))]
 public class UnitDataEditor : Editor
@@ -22,6 +21,9 @@ public class UnitDataEditor : Editor
     private SerializedProperty itemQuantitiesProp;
     private SerializedProperty resistancesProp;
     private SerializedProperty weaknessesProp;
+    private SerializedProperty baseCritChanceProp;
+    private SerializedProperty critChanceIncreasePerFailedAttemptProp;
+    private SerializedProperty maxCritChanceProp;
 
 
     private void OnEnable()
@@ -43,6 +45,9 @@ public class UnitDataEditor : Editor
         itemQuantitiesProp = serializedObject.FindProperty("itemQuantities");
         resistancesProp = serializedObject.FindProperty("resistances");
         weaknessesProp = serializedObject.FindProperty("weaknesses");
+        baseCritChanceProp = serializedObject.FindProperty("baseCritChance");
+        critChanceIncreasePerFailedAttemptProp = serializedObject.FindProperty("critChanceIncreasePerFailedAttempt");
+        maxCritChanceProp = serializedObject.FindProperty("maxCritChance");
 
     }
 
@@ -60,6 +65,9 @@ public class UnitDataEditor : Editor
         EditorGUILayout.PropertyField(damageReductionPercentageProp);
         EditorGUILayout.PropertyField(abilitiesDataProp);
         EditorGUILayout.PropertyField(itemsDataProp);
+        EditorGUILayout.PropertyField(baseCritChanceProp);
+        EditorGUILayout.PropertyField(critChanceIncreasePerFailedAttemptProp);
+        EditorGUILayout.PropertyField(maxCritChanceProp);
 
         EditorGUILayout.PropertyField(maxActionPointsProp);
         EditorGUILayout.PropertyField(currentActionPointsProp);

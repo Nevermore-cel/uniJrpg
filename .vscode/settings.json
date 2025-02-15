@@ -51,7 +51,7 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "My project (2).sln",
+    "dotnet.defaultSolution": "uniJrpg.sln",
     "gigacode.lookupPriority": true,
     "gigacode.common.useProjectContextWithOpenTabsPriority": true,
     "gigacode.inlineCompletionColor": "pink",

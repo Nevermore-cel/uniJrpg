@@ -1,0 +1,4 @@
+repository "uniJrpg@dimon2121212@cloud"
+  path "/"
+    br "/main"
+    co "/main"

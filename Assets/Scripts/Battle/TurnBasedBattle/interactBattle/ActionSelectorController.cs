@@ -31,6 +31,7 @@ public class ActionSelectorController : MonoBehaviour
     public Button itemButton;
     private UnitData playerUnit;
     private UnitData targetUnit; // Added to store the selected target
+    private UnitData _playerSelectedTarget;
 
     private void Start()
     {
@@ -119,7 +120,7 @@ public class ActionSelectorController : MonoBehaviour
             UpdateAbilityInfoElements(abilities, unitId);
         }
     }
-     public void SetUnitItems(int unitId, List<ItemData> items)
+    public void SetUnitItems(int unitId, List<ItemData> items)
     {
         if (items == null || items.Count == 0)
         {
@@ -127,10 +128,10 @@ public class ActionSelectorController : MonoBehaviour
             ClearItemInfoElements(unitId);
             return;
         }
-           UnitData unitData = GetUnitData(unitId); // Get UnitData for accessing item quantity
-           if (!unitItems.ContainsKey(unitId))
+        UnitData unitData = GetUnitData(unitId); // Get UnitData for accessing item quantity
+        if (!unitItems.ContainsKey(unitId))
         {
-             CreateItemInfoElements(items, unitId, unitData);
+            CreateItemInfoElements(items, unitId, unitData);
         }
         else
         {
@@ -202,7 +203,7 @@ public class ActionSelectorController : MonoBehaviour
             actionSelectorInterface.SetActive(false);
             interfaceIsActive = false;
             currentActionType = ActionType.None;
-              ResetSelection();
+            ResetSelection();
 
         }
     }
@@ -276,7 +277,7 @@ public class ActionSelectorController : MonoBehaviour
             }
         }
     }
-     private void CreateItemInfoElements(List<ItemData> items, int unitId, UnitData unitData)
+    private void CreateItemInfoElements(List<ItemData> items, int unitId, UnitData unitData)
     {
         RectTransform panelRect = abilityPanel.GetComponent<RectTransform>();
         if (panelRect == null) { Debug.LogError("abilityPanel missing RectTransform"); return; }
@@ -372,7 +373,7 @@ public class ActionSelectorController : MonoBehaviour
             }
         }
     }
-  private void UpdateItemInfoElements(List<ItemData> items, int unitId, UnitData unitData)
+    private void UpdateItemInfoElements(List<ItemData> items, int unitId, UnitData unitData)
     {
         if (!unitItems.ContainsKey(unitId)) return;
         foreach (var go in unitItems[unitId].Values)
@@ -381,31 +382,33 @@ public class ActionSelectorController : MonoBehaviour
         }
         foreach (var item in items)
         {
-              GameObject matchingItemInfo = unitItems[unitId].Values.FirstOrDefault(go =>
-                go.GetComponent<Button>().onClick.GetPersistentEventCount() > 0 &&
-                  go.GetComponent<Button>().onClick.GetPersistentTarget(0).Equals(this) &&
-                 go.GetComponent<Button>().onClick.GetPersistentMethodName(0) == nameof(OnItemButtonClicked) &&
-                go.GetComponentInChildren<TextMeshProUGUI>(true).text == item.itemName
-           );
-           if (matchingItemInfo != null)
-           {
-               matchingItemInfo.SetActive(true);
-                 int itemQuantity;
-                 if(unitData != null && unitData.gameObject.CompareTag("Player")){
-                   itemQuantity = unitData.GetItemQuantity(item);
+            GameObject matchingItemInfo = unitItems[unitId].Values.FirstOrDefault(go =>
+               go.GetComponent<Button>().onClick.GetPersistentEventCount() > 0 &&
+                 go.GetComponent<Button>().onClick.GetPersistentTarget(0).Equals(this) &&
+                go.GetComponent<Button>().onClick.GetPersistentMethodName(0) == nameof(OnItemButtonClicked) &&
+               go.GetComponentInChildren<TextMeshProUGUI>(true).text == item.itemName
+          );
+            if (matchingItemInfo != null)
+            {
+                matchingItemInfo.SetActive(true);
+                int itemQuantity;
+                if (unitData != null && unitData.gameObject.CompareTag("Player"))
+                {
+                    itemQuantity = unitData.GetItemQuantity(item);
                 }
-                else if(playerUnit != null)
-               {
-                 itemQuantity = playerUnit.GetItemQuantity(item);
+                else if (playerUnit != null)
+                {
+                    itemQuantity = playerUnit.GetItemQuantity(item);
                 }
-               else{
-                   itemQuantity = unitData.GetItemQuantity(item);
+                else
+                {
+                    itemQuantity = unitData.GetItemQuantity(item);
                 }
-               matchingItemInfo.transform.Find("AbilityCost").GetComponent<TextMeshProUGUI>().text = itemQuantity.ToString();
-           }
+                matchingItemInfo.transform.Find("AbilityCost").GetComponent<TextMeshProUGUI>().text = itemQuantity.ToString();
+            }
             else
             {
-               Debug.LogWarning($"Item {item.itemName} not found in unit {unitId} items");
+                Debug.LogWarning($"Item {item.itemName} not found in unit {unitId} items");
             }
         }
     }
@@ -447,7 +450,7 @@ public class ActionSelectorController : MonoBehaviour
         isSelectingTarget = true;
         selectedAbility = ability;
         selectedItem = null;
-       Debug.Log($"Ability '{ability.abilityName}' selected, selecting target");
+        Debug.Log($"Ability '{ability.abilityName}' selected, selecting target");
     }
     private void OnItemButtonClicked(ItemData item, GameObject clickedButton)
     {
@@ -464,7 +467,7 @@ public class ActionSelectorController : MonoBehaviour
         isSelectingTarget = true;
         selectedItem = item;
         selectedAbility = null;
-       Debug.Log($"Item '{item.itemName}' selected, selecting target");
+        Debug.Log($"Item '{item.itemName}' selected, selecting target");
     }
     private void Update()
     {
@@ -487,12 +490,15 @@ public class ActionSelectorController : MonoBehaviour
 
             if (targetUnit != null)
             {
+                UnitData currentUnit = GetUnitData(currentUnitID); // Get the correct currentUnit
+
                 if (selectedAbility != null)
                 {
-                    if (GetUnitData(currentUnitID).CanUseAbility(selectedAbility))
+                    if (currentUnit.CanUseAbility(selectedAbility))
                     {
-                        GetUnitData(currentUnitID).DeductActionPoints(selectedAbility.cost);
-                        targetUnit.ApplyAbilityEffect(selectedAbility);
+                        currentUnit.DeductActionPoints(selectedAbility.cost);
+                        bool isCrit = currentUnit.CalculateCrit(); // Calculate crit for ability use
+                        targetUnit.ApplyAbilityEffect(selectedAbility, isCrit); // Pass isCrit
                         Debug.Log($"Ability '{selectedAbility.abilityName}' Target Unit '{targetUnit.unitName}', ID {targetUnit.unitID}, Type: {selectedAbility.typeAction}");
                         // End the turn
                         combatManager.EndTurn();
@@ -504,14 +510,15 @@ public class ActionSelectorController : MonoBehaviour
                 }
                 else if (selectedItem != null)
                 {
-                    UnitData currentUnit = GetUnitData(currentUnitID);
+
                     if (currentUnit != null && currentUnit.gameObject.CompareTag("Companion") && playerUnit != null)
                     {
                         if (playerUnit.CanUseItem(selectedItem))
                         {
-                            currentUnit.UseItem(selectedItem, playerUnit);
-                            targetUnit.ApplyItemEffect(selectedItem, targetUnit); // Pass targetUnit to ApplyItemEffect
-                           Debug.Log($"Item '{selectedItem.itemName}' Target Unit '{targetUnit.unitName}', ID {targetUnit.unitID}, Type: {selectedItem.typeAction}, used from player's inventory");
+                            playerUnit.UseItem(selectedItem, currentUnit);
+                            bool isCrit = currentUnit.CalculateCrit(); // Calculate crit for item use
+                            targetUnit.ApplyItemEffect(selectedItem, targetUnit, isCrit); // Pass isCrit
+                            Debug.Log($"Item '{selectedItem.itemName}' Target Unit '{targetUnit.unitName}', ID {targetUnit.unitID}, Type: {selectedItem.typeAction}, used from player's inventory");
                             combatManager.EndTurn();
                         }
                         else
@@ -522,7 +529,8 @@ public class ActionSelectorController : MonoBehaviour
                     else if (currentUnit != null && currentUnit.CanUseItem(selectedItem))
                     {
                         currentUnit.UseItem(selectedItem);
-                        targetUnit.ApplyItemEffect(selectedItem, targetUnit); // Pass targetUnit to ApplyItemEffect
+                        bool isCrit = currentUnit.CalculateCrit(); // Calculate crit for item use
+                        targetUnit.ApplyItemEffect(selectedItem, targetUnit, isCrit); // Pass isCrit
                         Debug.Log($"Item '{selectedItem.itemName}' Target Unit '{targetUnit.unitName}', ID {targetUnit.unitID}, Type: {selectedItem.typeAction}");
                         combatManager.EndTurn();
                     }

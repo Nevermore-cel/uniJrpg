@@ -10,7 +10,7 @@ public class CompanionMovement : MonoBehaviour
     public float patrolRange = 2.0f; // Patrol range around the player
     public float companionSpacing = 1f; // Spacing between companions
 
-    private NavMeshAgent navMeshAgent;
+    public NavMeshAgent navMeshAgent;
     private bool hasReachedFirstPatrolPoint = false; // Flag to indicate if the companion has reached the first patrol point
     private bool hasPatrolPoint = false; // Flag to indicate if the companion has a patrol point assigned
     private const int MAX_RANDOM_POINT_ATTEMPTS = 10;

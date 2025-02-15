@@ -20,10 +20,17 @@ public class UnitData : MonoBehaviour
     [SerializeField] public List<int> selectedAbilitiesIndexes;
     [SerializeField] public ItemsData itemsData;
     [SerializeField] public List<ItemQuantity> itemQuantities; // New list to store individual item quantities
-      [SerializeField] public List<ResistanceData> resistances = new List<ResistanceData>(); // New List for resistances
-     [SerializeField] public List<WeaknessData> weaknesses = new List<WeaknessData>(); // New List for weaknesses
+    [SerializeField] public List<ResistanceData> resistances = new List<ResistanceData>(); // New List for resistances
+    [SerializeField] public List<WeaknessData> weaknesses = new List<WeaknessData>(); // New List for weaknesses
     public Vector2Int startGridPosition;
     public float damageReductionPercentage = 0f; // Добавлено поле для уменьшения урона
+
+    [Range(0f, 1f)] public float baseCritChance = 0.05f; // Базовый шанс крит. удара (5%)
+    public float critChanceIncreasePerFailedAttempt = 0.02f; // Увеличение шанса за каждую неудачную попытку
+    public float maxCritChance = 0.5f; // Максимальный шанс крит. удара
+
+    public float currentCritChance; // Текущий шанс крит. удара
+    private bool _isCrit; // bool для хранения результата вычисления крит урона
 
     private static HashSet<int> usedIDs = new HashSet<int>();
     private float damageReduction = 0f; // Local damage reduction
@@ -52,6 +59,7 @@ public class UnitData : MonoBehaviour
         _previousPosition = transform.position;
         currentHealth = maxHealth;
         currentActionPoints = maxActionPoints;
+        currentCritChance = baseCritChance; // Инициализация текущего шанса
     }
 
     void Update()
@@ -106,20 +114,20 @@ public class UnitData : MonoBehaviour
             }
         }
     }
-   public void SetSelectedResistances(List<ResistanceData> newResistances)
+    public void SetSelectedResistances(List<ResistanceData> newResistances)
     {
         resistances.Clear();
-          foreach (var resistance in newResistances)
+        foreach (var resistance in newResistances)
         {
-                 resistances.Add(new ResistanceData { resistanceType = resistance.resistanceType, value = resistance.value });
+            resistances.Add(new ResistanceData { resistanceType = resistance.resistanceType, value = resistance.value });
         }
     }
     public void SetSelectedWeaknesses(List<WeaknessData> newWeaknesses)
     {
-         weaknesses.Clear();
+        weaknesses.Clear();
         foreach (var weakness in newWeaknesses)
         {
-             weaknesses.Add(new WeaknessData { weaknessType = weakness.weaknessType, value = weakness.value });
+            weaknesses.Add(new WeaknessData { weaknessType = weakness.weaknessType, value = weakness.value });
         }
     }
     public void SetSelectedItems(List<ItemData> newItems)
@@ -286,141 +294,101 @@ public class UnitData : MonoBehaviour
             Debug.LogWarning("Item is null, can't use item");
         }
     }
-    public void ApplyAbilityEffect(AbilityData ability)
+
+    public void ApplyAbilityEffect(AbilityData ability, bool isCrit)
     {
-          if (ability == null)
+        if (ability == null)
         {
             Debug.LogError("Ability is null. Cannot apply effect.");
             return;
         }
-        int damageAmount = ability.damage;
-           if (ability.typeAction == ActionType.attack || ability.typeAction == ActionType.fire || ability.typeAction == ActionType.ice || ability.typeAction == ActionType.lightning || ability.typeAction == ActionType.light || ability.typeAction == ActionType.dark || ability.typeAction == ActionType.pure || ability.typeAction == ActionType.piercing || ability.typeAction == ActionType.slashing || ability.typeAction == ActionType.bludgeoning || ability.typeAction == ActionType.wind) // Added wind
-        {
-            CombatManager combatManager = FindObjectOfType<CombatManager>();
-            // Уменьшение урона перед применением
-           float modifiedDamage = CalculateDamage(damageAmount,ability.typeAction);
-            currentHealth -= Mathf.RoundToInt(modifiedDamage);
-            Debug.Log($"{unitName} took {modifiedDamage} damage from '{ability.abilityName}'. Current health: {currentHealth}");
-           if (currentHealth <= 0)
-            {
-               if (combatManager != null)
-               {
-                    combatManager.RemoveUnit(this); // Удаляем юнита из списков CombatManager
-               }
-               if (gameObject.CompareTag("Enemy"))
-                {
-                    Die(); // Call Die function if the unit died and is an enemy.
-                   return;
-               }
-              else
-               {
-                   currentHealth = 0; // Sets the health to 0 if it is a companion or a player unit
-                    Debug.Log($"{unitName} has reached 0 health, but will not die because it is a {gameObject.tag}");
-                }
-           }
-        }
-       else if (ability.typeAction == ActionType.heal)
-        {
-            int healAmount = Mathf.Min(damageAmount, maxHealth - currentHealth);
-            currentHealth += healAmount;
-            Debug.Log($"{unitName} healed {healAmount} health from '{ability.abilityName}'. Current health: {currentHealth}");
-        }
-        else
-       {
-          Debug.LogWarning($"Unknown action type '{ability.typeAction}' for ability '{ability.abilityName}'.");
-       }
-        // Make sure that the health does not go below 0, or over maxHealth
-       currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
+        TakeDamage(ability.damage, ability.typeAction, ability.abilityName, isCrit);
     }
-     public void ApplyItemEffect(ItemData item, UnitData targetUnit)
+    public void ApplyItemEffect(ItemData item, UnitData targetUnit, bool isCrit)
     {
-         if (item == null)
+        if (item == null)
         {
             Debug.LogError("Item is null. Cannot apply effect.");
             return;
         }
-        if (item.typeAction == ActionType.attack || item.typeAction == ActionType.fire || item.typeAction == ActionType.ice || item.typeAction == ActionType.lightning || item.typeAction == ActionType.light || item.typeAction == ActionType.dark || item.typeAction == ActionType.pure || item.typeAction == ActionType.piercing || item.typeAction == ActionType.slashing || item.typeAction == ActionType.bludgeoning || item.typeAction == ActionType.wind) // Added wind
+        if (targetUnit != null)
         {
-            if (targetUnit != null)
-            {
-                // Уменьшение урона перед применением
-               float modifiedDamage = CalculateDamage(item.damage, item.typeAction);
-                targetUnit.currentHealth -= Mathf.RoundToInt(modifiedDamage);
-                Debug.Log($"{unitName} attacked {targetUnit.unitName} with {item.itemName} and dealt {modifiedDamage} damage. Current health of target: {targetUnit.currentHealth}");
-                if (targetUnit.currentHealth <= 0)
-                {
-                    CombatManager combatManager = FindObjectOfType<CombatManager>();
-                    if (combatManager != null)
-                    {
-                        combatManager.RemoveUnit(targetUnit);
-                    }
-                    if (targetUnit.gameObject.CompareTag("Enemy"))
-                    {
-                        targetUnit.Die();
-                    }
-                    else
-                    {
-                        targetUnit.currentHealth = 0; // Sets the health to 0 if it is a companion or a player unit
-                        Debug.Log($"{targetUnit.unitName} has reached 0 health, but will not die because it is a {targetUnit.gameObject.tag}");
-                    }
-                }
-            }
-            else
-            {
-                Debug.LogWarning($"{unitName} (ID: {unitID}) found no valid target.");
-            }
-
-        }
-        else if (item.typeAction == ActionType.heal)
-        {
-            int healAmount = Mathf.Min(item.damage, maxHealth - currentHealth);
-            currentHealth += healAmount;
-            Debug.Log($"{unitName} healed {healAmount} health from '{item.itemName}'. Current health: {currentHealth}");
+            targetUnit.TakeDamage(item.damage, item.typeAction, item.itemName, isCrit);
         }
         else
         {
-            Debug.LogWarning($"Unknown action type '{item.typeAction}' for item '{item.itemName}'.");
+            Debug.LogWarning($"{unitName} (ID: {unitID}) found no valid target.");
         }
-        // Make sure that the health does not go below 0, or over maxHealth
+    }
+    public void TakeDamage(int damage, ActionType damageType, string damageSourceName, bool isCrit)
+    {
+        if (isCrit)
+        {
+            damage *= 2; // Удваиваем урон при критическом ударе (можно настроить)
+            Debug.Log($"{unitName} performed a CRITICAL HIT!");
+        }
+
+        float modifiedDamage = CalculateDamage(damage, damageType);
+        currentHealth -= Mathf.RoundToInt(modifiedDamage);
+        Debug.Log($"{unitName} took {modifiedDamage} damage from '{damageSourceName}'. Current health: {currentHealth}");
+
+        if (currentHealth <= 0)
+        {
+            CombatManager combatManager = FindObjectOfType<CombatManager>();
+            if (combatManager != null)
+            {
+                combatManager.RemoveUnit(this); // Удаляем юнита из списков CombatManager
+            }
+            if (gameObject.CompareTag("Enemy"))
+            {
+                Die(); // Call Die function if the unit died and is an enemy.
+                return;
+            }
+            else
+            {
+                currentHealth = 0; // Sets the health to 0 if it is a companion or a player unit
+                Debug.Log($"{unitName} has reached 0 health, but will not die because it is a {gameObject.tag}");
+            }
+        }
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
     }
-      private float CalculateDamage(int damage, ActionType attackType)
-     {
-         float modifiedDamage = damage;
+    private float CalculateDamage(int damage, ActionType attackType)
+    {
+        float modifiedDamage = damage;
         // Check for resistances
-         foreach (var resistance in resistances)
+        foreach (var resistance in resistances)
         {
-              if (resistance.resistanceType == attackType)
+            if (resistance.resistanceType == attackType)
             {
-               modifiedDamage *= (1f - resistance.value);
-                 Debug.Log($"{unitName} has resistance to {attackType}, damage reduced by {resistance.value*100}%");
+                modifiedDamage *= (1f - resistance.value);
+                Debug.Log($"{unitName} has resistance to {attackType}, damage reduced by {resistance.value * 100}%");
                 break; // Only apply one resistance
             }
         }
-          foreach (var weakness in weaknesses)
+        foreach (var weakness in weaknesses)
         {
             if (weakness.weaknessType == attackType)
             {
-                 modifiedDamage *= (1f + weakness.value);
-               Debug.Log($"{unitName} has weakness to {attackType}, damage increased by {weakness.value*100}%");
-              break; // Only apply one weakness
+                modifiedDamage *= (1f + weakness.value);
+                Debug.Log($"{unitName} has weakness to {attackType}, damage increased by {weakness.value * 100}%");
+                break; // Only apply one weakness
             }
         }
         // Уменьшение урона перед применением
         modifiedDamage *= (1f - damageReduction);
 
-         return modifiedDamage;
-     }
-     private UnitData FindTarget(UnitData attacker, List<UnitData> aliveUnits)
+        return modifiedDamage;
+    }
+    private UnitData FindTarget(UnitData attacker, List<UnitData> aliveUnits)
     {
-         List<UnitData> targetTeam;
+        List<UnitData> targetTeam;
 
         if (attacker.gameObject.CompareTag("Player") || attacker.gameObject.CompareTag("Companion"))
         {
             targetTeam = FindObjectOfType<CombatManager>().enemyTeam;
         }
-       else if (attacker.gameObject.CompareTag("Enemy"))
-       {
+        else if (attacker.gameObject.CompareTag("Enemy"))
+        {
             targetTeam = FindObjectOfType<CombatManager>().playerTeam;
         }
         else
@@ -428,13 +396,13 @@ public class UnitData : MonoBehaviour
             return null; // Или выбросить исключение, если метка не определена.
         }
 
-         if (aliveUnits != null && aliveUnits.Count > 0)
+        if (aliveUnits != null && aliveUnits.Count > 0)
         {
-             // Фильтруем список живых юнитов, чтобы убедиться, что они принадлежат к нужной команде для выбора цели
-             List<UnitData> validTargets = aliveUnits.Where(unit =>
-                (attacker.gameObject.CompareTag("Player") || attacker.gameObject.CompareTag("Companion")) ? targetTeam.Contains(unit) : targetTeam.Contains(unit)
-                && unit.currentHealth > 0 // Убедимся, что цель имеет положительное здоровье
-            ).ToList();
+            // Фильтруем список живых юнитов, чтобы убедиться, что они принадлежат к нужной команде для выбора цели
+            List<UnitData> validTargets = aliveUnits.Where(unit =>
+               (attacker.gameObject.CompareTag("Player") || attacker.gameObject.CompareTag("Companion")) ? targetTeam.Contains(unit) : targetTeam.Contains(unit)
+               && unit.currentHealth > 0 // Убедимся, что цель имеет положительное здоровье
+           ).ToList();
             if (validTargets.Count > 0)
             {
                 return validTargets[UnityEngine.Random.Range(0, validTargets.Count)];
@@ -454,28 +422,62 @@ public class UnitData : MonoBehaviour
         damageReduction = Mathf.Clamp01(percentage);
         Debug.Log($"{unitName} damage reduction is set to : '{damageReduction * 100}%'");
     }
+    public bool CalculateCrit()
+    {
+        // Генерируем случайное число от 0 до 1
+        float randomNumber = UnityEngine.Random.value;
+
+        // Проверяем, выпало ли число в пределах текущего шанса крит. удара
+        _isCrit = randomNumber <= currentCritChance;
+        if (_isCrit)
+        {
+            // Крит произошел, сбрасываем шанс к базовому значению
+            currentCritChance = baseCritChance;
+        }
+        else
+        {
+            // Крит не произошел, увеличиваем шанс для следующей попытки
+            float oldChance = currentCritChance;
+            currentCritChance = Mathf.Min(currentCritChance + critChanceIncreasePerFailedAttempt, maxCritChance);
+        }
+        return _isCrit;
+    }
     private void Die()
     {
         Debug.Log($"{unitName} has died!");
         CombatManager combatManager = FindObjectOfType<CombatManager>();
-         if (combatManager != null)
+        if (combatManager != null)
         {
             combatManager.RemoveUnit(this); // Удаляем юнита из списков CombatManager
         }
         Destroy(gameObject); // Уничтожаем GameObject
     }
+    public string GetCritInfo()
+    {
+        string critMessage;
+        if (_isCrit)
+        {
+            critMessage = ($"{unitName} performed a CRITICAL HIT! (Chance was {currentCritChance * 100}%)");
+        }
+        else
+        {
+            critMessage = ($"{unitName} did not perform a critical hit.");
+        }
+        return critMessage;
+    }
 }
+
 [System.Serializable]
 public class ResistanceData
 {
     public ActionType resistanceType;
-    [Range(0,1)] public float value = 0f;
+    [Range(0, 1)] public float value = 0f;
 }
 [System.Serializable]
 public class WeaknessData
 {
-  public ActionType weaknessType;
-   [Range(0,1)] public float value = 0f;
+    public ActionType weaknessType;
+    [Range(0, 1)] public float value = 0f;
 }
 
 [System.Serializable]

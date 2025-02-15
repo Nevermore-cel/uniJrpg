@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEditor;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,6 +22,7 @@ public class CombatManager : MonoBehaviour
     private int enemyTeamTurns;
     private BattleInterfaceController battleInterfaceController;
     [SerializeField] private ExitInteract exitInteract; // Добавляем ссылку на ExitInteract
+    private UnitData _playerSelectedTarget;
 
     void Start()
     {
@@ -215,7 +217,10 @@ public class CombatManager : MonoBehaviour
 
         if (targetUnit != null && targetUnit.gameObject.activeInHierarchy && targetUnit.currentHealth > 0)
         {
-            targetUnit.ApplyAbilityEffect(ability);
+            // Рассчитываем, является ли атака критической
+            bool isCrit = unit.CalculateCrit();
+
+            targetUnit.ApplyAbilityEffect(ability, isCrit);
         }
         else
         {
@@ -244,9 +249,9 @@ public class CombatManager : MonoBehaviour
         {
             // Фильтруем список живых юнитов, чтобы убедиться, что они принадлежат к нужной команде для выбора цели
             List<UnitData> validTargets = aliveUnits.Where(unit =>
-               (attacker.gameObject.CompareTag(playerTag) || attacker.gameObject.CompareTag(companionTag)) ? enemyTeam.Contains(unit) : playerTeam.Contains(unit)
+               (attacker.gameObject.CompareTag(playerTag) || attacker.gameObject.CompareTag(companionTag)) ? targetTeam.Contains(unit) : targetTeam.Contains(unit)
                && unit.currentHealth > 0 // Убедимся, что цель имеет положительное здоровье
-           ).ToList();
+            ).ToList();
             if (validTargets.Count > 0)
             {
                 return validTargets[UnityEngine.Random.Range(0, validTargets.Count)];
@@ -254,8 +259,7 @@ public class CombatManager : MonoBehaviour
         }
         return null;
     }
-
-    public void EndTurn()
+    public void EndTurn(UnitData target = null)
     {
         List<UnitData> currentTeam = GetCurrentTeam();
 
@@ -277,6 +281,8 @@ public class CombatManager : MonoBehaviour
             }
             return;
         }
+        // Здесь, перед завершением хода, вызываем метод для отображения информации о крит. ударе.
+        DisplayCritInfo(currentUnit);
 
         currentUnitIndex++;
         if (currentUnitIndex >= currentTeam.Count)
@@ -319,6 +325,17 @@ public class CombatManager : MonoBehaviour
         currentUnit = null; //  Reset current unit
         totalTurns++;
         StartTurn();
+    }
+
+    private void DisplayCritInfo(UnitData unit)
+    {
+        if (unit != null)
+        {
+            // Рассчитываем критический удар и выводим информацию.
+            bool isCrit = unit.CalculateCrit();
+            string critMessage = unit.GetCritInfo();
+            Debug.Log($"[End of Turn] {critMessage} Current CritChance: {unit.currentCritChance * 100}%");
+        }
     }
 
 

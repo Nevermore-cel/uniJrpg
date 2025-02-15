@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 public class Attack : MonoBehaviour
 {
@@ -11,6 +12,7 @@ public class Attack : MonoBehaviour
     private bool isSelectingTarget = false;
     private List<UnitData> allUnits;
     public BattleInterfaceController battleInterfaceController;
+    private UnitData _selectedTarget;
 
     void Start()
     {
@@ -68,8 +70,8 @@ public class Attack : MonoBehaviour
         if (Physics.Raycast(ray, out hit))
         {
             GameObject target = hit.collider.gameObject;
-            targetUnitData = target.GetComponent<UnitData>();
-            if (targetUnitData != null)
+            _selectedTarget = target.GetComponent<UnitData>();
+            if (_selectedTarget != null)
             {
                 // Get current Unit
                 currentUnit = GetCurrentUnitData(actionSelectorController.currentUnitID);
@@ -77,11 +79,12 @@ public class Attack : MonoBehaviour
                 {
                     // Apply damage
                     ApplyDamageToTarget();
-                    // End the turn
-                    EndTurn();
+                    // End the turn, передавая цель
+                    EndTurn(_selectedTarget);
                 }
                 else
                 {
+                    CancelAttack();
                     Debug.LogWarning($"Unit with ID {actionSelectorController.currentUnitID} not found!");
                 }
             }
@@ -105,15 +108,12 @@ public class Attack : MonoBehaviour
     private void ApplyDamageToTarget()
     {
         // Apply damage to the target
-        if (targetUnitData != null && currentUnit != null)
+        if (_selectedTarget != null && currentUnit != null)
         {
-            int damage = currentUnit.attackDamage;
-            AbilityData attackAbility = new AbilityData();
-            attackAbility.damage = damage;
-            attackAbility.typeAction = currentUnit.attackType; // Use unit's attack type
-            attackAbility.abilityName = "Attack";
-            targetUnitData.ApplyAbilityEffect(attackAbility);
-            Debug.Log($"Attack Target Unit '{targetUnitData.unitName}', ID {targetUnitData.unitID}, Type: {currentUnit.attackType}");
+            bool isCrit = currentUnit.CalculateCrit();
+            _selectedTarget.TakeDamage(currentUnit.attackDamage, currentUnit.attackType, currentUnit.unitName, isCrit);
+
+            Debug.Log($"Attack Target Unit '{_selectedTarget.unitName}', ID {_selectedTarget.unitID}, Type: {currentUnit.attackType}");
         }
         else
         {
@@ -135,11 +135,11 @@ public class Attack : MonoBehaviour
         Debug.LogWarning($"No unit found with ID {unitId}");
         return null;
     }
-    public void EndTurn()
+    public void EndTurn(UnitData target = null)
     {
         if (combatManager != null)
         {
-            combatManager.EndTurn();
+            combatManager.EndTurn(target);
             if (actionSelectorController != null)
             {
                 actionSelectorController.HideActionSelector();
