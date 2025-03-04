@@ -6,31 +6,49 @@ public class AvtomatInteract : MonoBehaviour,  IInteractable
 {
     [SerializeField] private string interactText;
     [SerializeField] private string actionText;
-    [SerializeField] private float interactionRange;
-    public void Interact(){
-        Debug.Log("interact");
+    [SerializeField] private float interactionRange = 10f;
+
+    public void Interact(Transform interactorTransform) // Реализация интерфейса
+    {
+        Debug.Log("EnemyInteract");
+
+        PlayerAttackHandler playerAttackHandler = interactorTransform.GetComponent<PlayerAttackHandler>();
+
+        if (playerAttackHandler != null)
+        {
+            // Запускаем корутину загрузки сцены
+            StartCoroutine(InteractCoroutine(playerAttackHandler));
+        }
+        
     }
-    //текст интерфейса интерации 
-    public string GetInteractText(){
+
+    // Корутина для воспроизведения атаки и загрузки сцены
+    private IEnumerator InteractCoroutine(PlayerAttackHandler playerAttackHandler)
+    {
+        playerAttackHandler.HandleAttack(); // Запускаем анимацию атаки
+
+        // Даем анимации воспроизвестись (длительность анимации определена в PlayerAttackHandler)
+        yield return new WaitUntil(() => !playerAttackHandler.IsAttacking());
+    }
+
+    //текст интерфейса интерации
+    public string GetInteractText()
+    {
         return interactText;
     }
 
-    public string GetActionText(){
+    public string GetActionText()
+    {
         return actionText;
     }
 
-    public float GetRangeInteraction(){
+    public float GetRangeInteraction()
+    {
         return interactionRange;
     }
 
-    public void Interact(Transform interactorTransform)
+    public Transform GetTransform()
     {
-       Interact();
-    }
-
-    public Transform GetTransform(){
         return transform;
     }
-
-    
 }

@@ -7,10 +7,9 @@ public class NPCinterract : MonoBehaviour, IInteractable
     [SerializeField] private string interactText;
     [SerializeField] private string actionText;
     [SerializeField] private float interactionRange;
-    public void Interact(){
-        Debug.Log("interact");
-    }
+
     //текст интерфейса интерации 
+
     public string GetInteractText(){
         return interactText;
     }
@@ -25,7 +24,7 @@ public class NPCinterract : MonoBehaviour, IInteractable
 
     public void Interact(Transform interactorTransform)
     {
-       Interact();
+       Debug.Log("interact");
     }
 
     public Transform GetTransform(){

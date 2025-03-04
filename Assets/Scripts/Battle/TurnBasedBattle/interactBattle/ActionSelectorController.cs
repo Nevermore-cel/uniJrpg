@@ -1,42 +1,46 @@
-using UnityEngine;
+ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
-using TMPro;
-using System.Linq;
 
 public class ActionSelectorController : MonoBehaviour
 {
     public GameObject actionSelectorInterface;
-    public GameObject abilityInfoPrefab;
-    public Transform abilityPanel;
-    public float verticalSpacing = 30f;
     public BattleInterfaceController battleInterfaceController;
     public Color selectedColor = Color.yellow;
     public Color defaultColor = Color.white;
+    public Button abilityButton;
+    public Button itemButton;
 
     private bool interfaceIsActive = false;
-    private enum ActionType { Ability, Item, None } // Adding an enum for state checking
+    private enum ActionType { Ability, Item, None }
     private ActionType currentActionType = ActionType.None;
-    private Dictionary<int, Dictionary<int, GameObject>> unitAbilities = new Dictionary<int, Dictionary<int, GameObject>>();
-    private Dictionary<int, Dictionary<int, GameObject>> unitItems = new Dictionary<int, Dictionary<int, GameObject>>();
-    private GameObject currentlySelectedAbility = null;
-    private GameObject currentlySelectedItem = null;
+    public int currentUnitID;
     private bool isSelectingTarget = false;
     private AbilityData selectedAbility;
     private ItemData selectedItem;
-    public int currentUnitID;
+    private UnitData targetUnit;
+
     private CombatManager combatManager;
     private List<UnitData> allUnits;
-    public Button abilityButton;
-    public Button itemButton;
-    private UnitData playerUnit;
-    private UnitData targetUnit; // Added to store the selected target
-    private UnitData _playerSelectedTarget;
 
-    private void Start()
+    [Header("Action Panel Settings")]
+    public Transform abilityPanel;
+    public GameObject abilityInfoPrefab;
+    public float verticalSpacing = 30f;
+    private AbilityItemCreator _abilityItemCreator;
+
+    void Start()
     {
-        actionSelectorInterface.SetActive(false);
-        interfaceIsActive = false;
+        _abilityItemCreator = new AbilityItemCreator(
+            abilityPanel,
+            abilityInfoPrefab,
+            verticalSpacing,
+            defaultColor,
+            selectedColor,
+            (prefab, parent) => Instantiate(prefab, parent),
+            (obj) => Destroy(obj)
+        );
+
         combatManager = FindObjectOfType<CombatManager>();
         if (combatManager != null)
         {
@@ -47,6 +51,8 @@ public class ActionSelectorController : MonoBehaviour
             Debug.LogError("CombatManager is null!");
         }
 
+        actionSelectorInterface.SetActive(false);
+        interfaceIsActive = false;
         if (abilityButton == null)
         {
             Debug.LogError("Ability Button not found");
@@ -57,47 +63,33 @@ public class ActionSelectorController : MonoBehaviour
         }
         abilityButton.onClick.AddListener(ShowAbilities);
         itemButton.onClick.AddListener(ShowItems);
-        FindPlayerUnit();
     }
-    private void FindPlayerUnit()
-    {
-        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-        if (playerObject != null)
-        {
-            playerUnit = playerObject.GetComponent<UnitData>();
-            if (playerUnit == null)
-            {
-                Debug.LogError("Player UnitData not found in scene!");
-            }
-        }
-        else
-        {
-            Debug.LogError("Player object not found in scene!");
-        }
-    }
+
     public void ShowAbilities()
     {
         ResetSelection();
         currentActionType = ActionType.Ability;
-        HideItems();
+        _abilityItemCreator.HideItems();
         ShowActionSelector();
     }
+
     public void ShowItems()
     {
         ResetSelection();
         currentActionType = ActionType.Item;
-        HideAbilities();
+        _abilityItemCreator.HideAbilities();
         ShowActionSelector();
     }
+
     private void ResetSelection()
     {
         isSelectingTarget = false;
-        currentlySelectedAbility = null;
-        currentlySelectedItem = null;
         selectedAbility = null;
         selectedItem = null;
-        targetUnit = null; // Reset targetUnit
+        targetUnit = null;
+        _abilityItemCreator.ResetSelection();
     }
+
     public void SetCurrentUnitId(int unitId)
     {
         currentUnitID = unitId;
@@ -105,371 +97,66 @@ public class ActionSelectorController : MonoBehaviour
 
     public void SetUnitAbilities(int unitId, List<AbilityData> abilities)
     {
-        if (abilities == null || abilities.Count == 0)
-        {
-            Debug.LogWarning($"No abilities found for unit {unitId}");
-            ClearAbilityInfoElements(unitId);
-            return;
-        }
-        if (!unitAbilities.ContainsKey(unitId))
-        {
-            CreateAbilityInfoElements(abilities, unitId);
-        }
-        else
-        {
-            UpdateAbilityInfoElements(abilities, unitId);
-        }
+        _abilityItemCreator.SetUnitAbilities(abilities, unitId, OnAbilityButtonClicked);
     }
     public void SetUnitItems(int unitId, List<ItemData> items)
     {
-        if (items == null || items.Count == 0)
-        {
-            Debug.LogWarning($"No items found for unit {unitId}");
-            ClearItemInfoElements(unitId);
-            return;
-        }
-        UnitData unitData = GetUnitData(unitId); // Get UnitData for accessing item quantity
-        if (!unitItems.ContainsKey(unitId))
-        {
-            CreateItemInfoElements(items, unitId, unitData);
-        }
-        else
-        {
-            UpdateItemInfoElements(items, unitId, unitData);
-        }
+        UnitData unitData = GetUnitData(unitId);
+        _abilityItemCreator.SetUnitItems(items, unitId, unitData, OnItemButtonClicked);
     }
     public void ShowActionSelector()
     {
-        if (!interfaceIsActive && (unitAbilities.Count > 0 || unitItems.Count > 0))
+        if (!interfaceIsActive && (_abilityItemCreator.HasAbilities() || _abilityItemCreator.HasItems()))
         {
             actionSelectorInterface.SetActive(true);
             interfaceIsActive = true;
             if (currentActionType == ActionType.Ability)
             {
-                ShowAbilitiesInternal();
+                _abilityItemCreator.ShowAbilitiesInternal();
             }
             else if (currentActionType == ActionType.Item)
             {
-                ShowItemsInternal();
+                _abilityItemCreator.ShowItemsInternal();
             }
         }
     }
-    private void ShowAbilitiesInternal()
+      public void ClearAllAbilityInfo()
     {
-        foreach (var kvp in unitAbilities)
-        {
-            foreach (var go in kvp.Value.Values)
-            {
-                go.SetActive(true);
-            }
-        }
+        _abilityItemCreator.ClearAllAbilityInfoElements();
     }
-    private void ShowItemsInternal()
-    {
-        foreach (var kvp in unitItems)
-        {
-            foreach (var go in kvp.Value.Values)
-            {
-                go.SetActive(true);
-            }
-        }
-    }
-    public void HideAbilities()
-    {
-        foreach (var kvp in unitAbilities)
-        {
-            foreach (var go in kvp.Value.Values)
-            {
-                go.SetActive(false);
-            }
-        }
-    }
-    public void HideItems()
-    {
-        foreach (var kvp in unitItems)
-        {
-            foreach (var go in kvp.Value.Values)
-            {
-                go.SetActive(false);
-            }
-        }
-    }
+
     public void HideActionSelector()
     {
         if (interfaceIsActive)
         {
-            HideAbilities();
-            HideItems();
+            _abilityItemCreator.HideAbilities();
+            _abilityItemCreator.HideItems();
             actionSelectorInterface.SetActive(false);
             interfaceIsActive = false;
             currentActionType = ActionType.None;
             ResetSelection();
-
-        }
-    }
-    public void ClearAllAbilityInfoElements()
-    {
-        foreach (var kvp in unitAbilities)
-        {
-            foreach (var go in kvp.Value.Values)
-            {
-                Destroy(go);
-            }
-        }
-        unitAbilities.Clear();
-        foreach (var kvp in unitItems)
-        {
-            foreach (var go in kvp.Value.Values)
-            {
-                Destroy(go);
-            }
-        }
-        unitItems.Clear();
-    }
-    private void CreateAbilityInfoElements(List<AbilityData> abilities, int unitId)
-    {
-        RectTransform panelRect = abilityPanel.GetComponent<RectTransform>();
-        if (panelRect == null) { Debug.LogError("abilityPanel missing RectTransform"); return; }
-
-        unitAbilities[unitId] = new Dictionary<int, GameObject>();
-        float yOffset = 0;
-        float abilityHeight = 20f;
-
-        for (int i = 0; i < abilities.Count; i++)
-        {
-            GameObject abilityInfo = Instantiate(abilityInfoPrefab, abilityPanel);
-            abilityInfo.SetActive(false);
-            RectTransform rectTransform = abilityInfo.GetComponent<RectTransform>();
-            if (rectTransform == null)
-            {
-                Debug.LogError($"AbilityInfoPrefab missing RectTransform");
-                Destroy(abilityInfo);
-                continue;
-            }
-            rectTransform.anchorMin = new Vector2(0.5f, 1f);
-            rectTransform.anchorMax = new Vector2(0.5f, 1f);
-            rectTransform.pivot = new Vector2(0.5f, 1f);
-            rectTransform.anchoredPosition = new Vector2(0, yOffset);
-
-            yOffset -= (abilityHeight + verticalSpacing);
-
-            Button button = abilityInfo.GetComponent<Button>();
-            TextMeshProUGUI nameText = abilityInfo.transform.Find("AbilityName").GetComponent<TextMeshProUGUI>();
-            TextMeshProUGUI costText = abilityInfo.transform.Find("AbilityCost").GetComponent<TextMeshProUGUI>();
-
-            if (button == null || nameText == null || costText == null)
-            {
-                Debug.LogError("AbilityInfoPrefab missing Button or TextMeshProUGUI components");
-                Destroy(abilityInfo);
-                continue;
-            }
-            nameText.text = abilities[i].abilityName;
-            costText.text = abilities[i].cost.ToString();
-            button.GetComponent<Image>().color = defaultColor;
-
-            AbilityData currentAbility = abilities[i];
-            button.onClick.AddListener(() => OnAbilityButtonClicked(currentAbility, abilityInfo));
-
-            int instanceID = abilityInfo.GetInstanceID();
-            if (!unitAbilities[unitId].TryAdd(instanceID, abilityInfo))
-            {
-                Debug.LogError($"Error Duplicate ability instance ID for unit {unitId}!");
-            }
-        }
-    }
-    private void CreateItemInfoElements(List<ItemData> items, int unitId, UnitData unitData)
-    {
-        RectTransform panelRect = abilityPanel.GetComponent<RectTransform>();
-        if (panelRect == null) { Debug.LogError("abilityPanel missing RectTransform"); return; }
-
-        unitItems[unitId] = new Dictionary<int, GameObject>();
-        float yOffset = 0;
-        float itemHeight = 20f;
-
-        for (int i = 0; i < items.Count; i++)
-        {
-
-            GameObject itemInfo = Instantiate(abilityInfoPrefab, abilityPanel);
-            itemInfo.SetActive(false);
-            RectTransform rectTransform = itemInfo.GetComponent<RectTransform>();
-            if (rectTransform == null)
-            {
-                Debug.LogError($"ItemInfoPrefab missing RectTransform");
-                Destroy(itemInfo);
-                continue;
-            }
-            rectTransform.anchorMin = new Vector2(0.5f, 1f);
-            rectTransform.anchorMax = new Vector2(0.5f, 1f);
-            rectTransform.pivot = new Vector2(0.5f, 1f);
-            rectTransform.anchoredPosition = new Vector2(0, yOffset);
-
-            yOffset -= (itemHeight + verticalSpacing);
-
-            Button button = itemInfo.GetComponent<Button>();
-            TextMeshProUGUI nameText = itemInfo.transform.Find("AbilityName").GetComponent<TextMeshProUGUI>();
-            TextMeshProUGUI costText = itemInfo.transform.Find("AbilityCost").GetComponent<TextMeshProUGUI>();
-
-            if (button == null || nameText == null || costText == null)
-            {
-                Debug.LogError("ItemInfoPrefab missing Button or TextMeshProUGUI components");
-                Destroy(itemInfo);
-                continue;
-            }
-            nameText.text = items[i].itemName;
-            int itemQuantity;
-            if (unitData != null && unitData.gameObject.CompareTag("Player"))
-            {
-                itemQuantity = unitData.GetItemQuantity(items[i]);
-            }
-            else if (playerUnit != null)
-            {
-                itemQuantity = playerUnit.GetItemQuantity(items[i]);
-            }
-            else
-            {
-                itemQuantity = unitData.GetItemQuantity(items[i]);
-            }
-            costText.text = itemQuantity.ToString();
-
-            button.GetComponent<Image>().color = defaultColor;
-
-            ItemData currentItem = items[i];
-            button.onClick.AddListener(() => OnItemButtonClicked(currentItem, itemInfo));
-
-            int instanceID = itemInfo.GetInstanceID();
-            if (!unitItems[unitId].TryAdd(instanceID, itemInfo))
-            {
-                Debug.LogError($"Error Duplicate item instance ID for unit {unitId}!");
-            }
-
-        }
-    }
-
-
-    private void UpdateAbilityInfoElements(List<AbilityData> abilities, int unitId)
-    {
-        if (!unitAbilities.ContainsKey(unitId)) return;
-
-        foreach (var go in unitAbilities[unitId].Values)
-        {
-            go.SetActive(false);
-        }
-        foreach (var ability in abilities)
-        {
-            GameObject matchingAbilityInfo = unitAbilities[unitId].Values.FirstOrDefault(go =>
-                go.GetComponent<Button>().onClick.GetPersistentEventCount() > 0 &&
-                go.GetComponent<Button>().onClick.GetPersistentTarget(0).Equals(this) &&
-                go.GetComponent<Button>().onClick.GetPersistentMethodName(0) == nameof(OnAbilityButtonClicked) &&
-                go.GetComponentInChildren<TextMeshProUGUI>(true).text == ability.abilityName
-            );
-
-            if (matchingAbilityInfo != null)
-            {
-                matchingAbilityInfo.SetActive(true);
-            }
-            else
-            {
-                Debug.LogWarning($"Ability {ability.abilityName} not found in unit {unitId} abilities");
-            }
-        }
-    }
-    private void UpdateItemInfoElements(List<ItemData> items, int unitId, UnitData unitData)
-    {
-        if (!unitItems.ContainsKey(unitId)) return;
-        foreach (var go in unitItems[unitId].Values)
-        {
-            go.SetActive(false);
-        }
-        foreach (var item in items)
-        {
-            GameObject matchingItemInfo = unitItems[unitId].Values.FirstOrDefault(go =>
-               go.GetComponent<Button>().onClick.GetPersistentEventCount() > 0 &&
-                 go.GetComponent<Button>().onClick.GetPersistentTarget(0).Equals(this) &&
-                go.GetComponent<Button>().onClick.GetPersistentMethodName(0) == nameof(OnItemButtonClicked) &&
-               go.GetComponentInChildren<TextMeshProUGUI>(true).text == item.itemName
-          );
-            if (matchingItemInfo != null)
-            {
-                matchingItemInfo.SetActive(true);
-                int itemQuantity;
-                if (unitData != null && unitData.gameObject.CompareTag("Player"))
-                {
-                    itemQuantity = unitData.GetItemQuantity(item);
-                }
-                else if (playerUnit != null)
-                {
-                    itemQuantity = playerUnit.GetItemQuantity(item);
-                }
-                else
-                {
-                    itemQuantity = unitData.GetItemQuantity(item);
-                }
-                matchingItemInfo.transform.Find("AbilityCost").GetComponent<TextMeshProUGUI>().text = itemQuantity.ToString();
-            }
-            else
-            {
-                Debug.LogWarning($"Item {item.itemName} not found in unit {unitId} items");
-            }
-        }
-    }
-    private void ClearAbilityInfoElements(int unitId)
-    {
-        if (unitAbilities.ContainsKey(unitId))
-        {
-            foreach (GameObject ability in unitAbilities[unitId].Values)
-            {
-                Destroy(ability);
-            }
-            unitAbilities.Remove(unitId);
-        }
-    }
-    private void ClearItemInfoElements(int unitId)
-    {
-        if (unitItems.ContainsKey(unitId))
-        {
-            foreach (GameObject item in unitItems[unitId].Values)
-            {
-                Destroy(item);
-            }
-            unitItems.Remove(unitId);
         }
     }
 
     private void OnAbilityButtonClicked(AbilityData ability, GameObject clickedButton)
     {
-        if (currentlySelectedAbility != null)
-        {
-            currentlySelectedAbility.GetComponent<Image>().color = defaultColor;
-        }
-        if (currentlySelectedItem != null)
-        {
-            currentlySelectedItem.GetComponent<Image>().color = defaultColor;
-        }
-        currentlySelectedAbility = clickedButton;
-        currentlySelectedAbility.GetComponent<Image>().color = selectedColor;
+        _abilityItemCreator.SelectAbility(ability, clickedButton);
         isSelectingTarget = true;
         selectedAbility = ability;
         selectedItem = null;
         Debug.Log($"Ability '{ability.abilityName}' selected, selecting target");
     }
+
     private void OnItemButtonClicked(ItemData item, GameObject clickedButton)
     {
-        if (currentlySelectedAbility != null)
-        {
-            currentlySelectedAbility.GetComponent<Image>().color = defaultColor;
-        }
-        if (currentlySelectedItem != null)
-        {
-            currentlySelectedItem.GetComponent<Image>().color = defaultColor;
-        }
-        currentlySelectedItem = clickedButton;
-        currentlySelectedItem.GetComponent<Image>().color = selectedColor;
+        _abilityItemCreator.SelectItem(item, clickedButton);
         isSelectingTarget = true;
         selectedItem = item;
         selectedAbility = null;
         Debug.Log($"Item '{item.itemName}' selected, selecting target");
     }
-    private void Update()
+
+    void Update()
     {
         if (isSelectingTarget && Input.GetMouseButtonDown(0))
         {
@@ -500,7 +187,7 @@ public class ActionSelectorController : MonoBehaviour
                         bool isCrit = currentUnit.CalculateCrit(); // Calculate crit for ability use
                         targetUnit.ApplyAbilityEffect(selectedAbility, isCrit); // Pass isCrit
                         Debug.Log($"Ability '{selectedAbility.abilityName}' Target Unit '{targetUnit.unitName}', ID {targetUnit.unitID}, Type: {selectedAbility.typeAction}");
-                        // End the turn
+                         HideActionSelector();
                         combatManager.EndTurn();
                     }
                     else
@@ -510,16 +197,17 @@ public class ActionSelectorController : MonoBehaviour
                 }
                 else if (selectedItem != null)
                 {
-
-                    if (currentUnit != null && currentUnit.gameObject.CompareTag("Companion") && playerUnit != null)
+                    if (currentUnit != null && currentUnit.gameObject.CompareTag("Companion") && battleInterfaceController != null)
                     {
+                        UnitData playerUnit = battleInterfaceController.GetPlayerUnit();
                         if (playerUnit.CanUseItem(selectedItem))
                         {
                             playerUnit.UseItem(selectedItem, currentUnit);
                             bool isCrit = currentUnit.CalculateCrit(); // Calculate crit for item use
                             targetUnit.ApplyItemEffect(selectedItem, targetUnit, isCrit); // Pass isCrit
                             Debug.Log($"Item '{selectedItem.itemName}' Target Unit '{targetUnit.unitName}', ID {targetUnit.unitID}, Type: {selectedItem.typeAction}, used from player's inventory");
-                            combatManager.EndTurn();
+                             HideActionSelector();
+                           
                         }
                         else
                         {
@@ -532,13 +220,13 @@ public class ActionSelectorController : MonoBehaviour
                         bool isCrit = currentUnit.CalculateCrit(); // Calculate crit for item use
                         targetUnit.ApplyItemEffect(selectedItem, targetUnit, isCrit); // Pass isCrit
                         Debug.Log($"Item '{selectedItem.itemName}' Target Unit '{targetUnit.unitName}', ID {targetUnit.unitID}, Type: {selectedItem.typeAction}");
-                        combatManager.EndTurn();
+                           HideActionSelector();
+                         
                     }
                     else
                     {
                         Debug.LogWarning($"Unit with ID {currentUnitID} has not enough  {selectedItem.itemName}");
                     }
-
                 }
             }
             else
@@ -550,12 +238,15 @@ public class ActionSelectorController : MonoBehaviour
         {
             Debug.Log("Clicked on nothing, target selection cancelled");
         }
-
+                if (combatManager.CheckCombatEnd()) // Check if combat ended
+               {
+                  return; // Exit if combat ended
+               }
+                   combatManager.EndTurn(); // Guarantee EndTurn() is called
         isSelectingTarget = false;
         selectedAbility = null;
         selectedItem = null;
         targetUnit = null;
-
     }
 
     private UnitData GetUnitData(int unitId)
@@ -572,5 +263,10 @@ public class ActionSelectorController : MonoBehaviour
         }
         Debug.LogWarning($"No unit found with ID {unitId}");
         return null;
+    }
+
+    public bool IsInterfaceActive()
+    {
+        return interfaceIsActive;
     }
 }

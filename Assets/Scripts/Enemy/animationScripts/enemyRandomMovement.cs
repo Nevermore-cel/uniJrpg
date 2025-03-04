@@ -212,20 +212,26 @@ public class enemyRandomMovement : MonoBehaviour
         }
     }
 
-     private void LoadNextSceneAndTransferData()
-    {
-        string currentSceneName = SceneManager.GetActiveScene().name;
-        Transform playerTransform = GameObject.FindGameObjectWithTag("Player").transform;
-        SceneData.PlayerPositions[currentSceneName] = playerTransform.position;
-        SceneData.PlayerRotations[currentSceneName] = playerTransform.rotation;
-         SceneData.previousScene = currentSceneName;
-        StartScene.prefabToSpawn = EnemyPrefab;
-        StartScene.spawnCount = EnemyCount;
-        StartScene.SpawnTag = SpawnTag;
-        StartScene.nextSceneName = nextSceneName;
-        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(StartScene.nextSceneName);
-        asyncLoad.allowSceneActivation = false;
-        SceneManager.sceneLoaded += StartScene.OnSceneLoaded;
-        asyncLoad.allowSceneActivation = true;
-    }
+    public void LoadNextSceneAndTransferData()
+{   
+    string currentSceneName = SceneManager.GetActiveScene().name;
+    Transform playerTransform = GameObject.FindGameObjectWithTag("Player").transform;
+    SceneData.PlayerPositions[currentSceneName] = playerTransform.position;
+    SceneData.PlayerRotations[currentSceneName] = playerTransform.rotation;
+    SceneData.previousScene = currentSceneName;
+    
+    // Убедитесь, что статические поля очищены перед установкой новых значений
+    StartScene.prefabToSpawn = EnemyPrefab;
+    StartScene.spawnCount = EnemyCount;
+    StartScene.SpawnTag = SpawnTag;
+    StartScene.nextSceneName = nextSceneName;
+
+    // Сначала подписываемся на событие, затем начинаем загрузку
+    SceneManager.sceneLoaded += StartScene.OnSceneLoaded;
+    AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(StartScene.nextSceneName);
+    
+    // Убрать блокировку активации сцены, если она не нужна
+    asyncLoad.allowSceneActivation = true; 
+    
+}
 }

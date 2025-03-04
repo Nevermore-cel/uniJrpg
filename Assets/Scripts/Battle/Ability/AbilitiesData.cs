@@ -11,10 +11,11 @@ public class AbilitiesData : ScriptableObject
 public class AbilityData
 {
     public string abilityName;
-    public int range;
+    public int rangeX; // Range по X
+    public int rangeY; // Range по Y
     public int cost;
     public int damage;
-    public ActionType typeAction;  // Changed from string to enum
+    public ActionType typeAction;
     public string description;
 }
 // enum for type action

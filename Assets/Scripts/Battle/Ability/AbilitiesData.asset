@@ -14,31 +14,36 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   abilities:
   - abilityName: fire
-    range: 3
+    rangeX: 1
+    rangeY: 1
     cost: 12
     damage: 15
     typeAction: 2
     description: 
   - abilityName: frost
-    range: 2
+    rangeX: 2
+    rangeY: 2
     cost: 11
     damage: 15
     typeAction: 3
     description: 
   - abilityName: frosty
-    range: 2
+    rangeX: 1
+    rangeY: 2
     cost: 11
     damage: 25
     typeAction: 3
     description: 
   - abilityName: firety
-    range: 2
+    rangeX: 2
+    rangeY: 1
     cost: 11
     damage: 25
     typeAction: 2
     description: 
   - abilityName: heal
-    range: 2
+    rangeX: 1
+    rangeY: 1
     cost: 11
     damage: 20
     typeAction: 1

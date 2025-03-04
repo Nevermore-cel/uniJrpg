@@ -143,4 +143,17 @@ public class BattleInterfaceController : MonoBehaviour
             Debug.LogError("CombatManager is null!");
         }
     }
+    public UnitData GetPlayerUnit()
+    {
+        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+        if (playerObject != null)
+        {
+            return playerObject.GetComponent<UnitData>();
+        }
+        else
+        {
+            Debug.LogError("Player object not found in scene!");
+            return null;
+        }
+    }
 }

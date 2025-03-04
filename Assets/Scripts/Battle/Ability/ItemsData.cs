@@ -11,10 +11,11 @@ public class ItemsData : ScriptableObject
 public class ItemData
 {
     public string itemName;
-    public int range;
+    public int rangeX; // Range по X
+    public int rangeY; // Range по Y
     public int cost;
     public int damage;
-    public ActionType typeAction; // Changed from string to enum
+    public ActionType typeAction;
     public string description;
-    [HideInInspector] public int quantity;  // Added for visual aid in editor
+    [HideInInspector] public int quantity;
 }
