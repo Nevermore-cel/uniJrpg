@@ -3,19 +3,34 @@ using System.Collections;
 
 public class EnemyAttackInteract : MonoBehaviour, IInteractable
 {
-    [SerializeField] private string interactText;
-    [SerializeField] private string actionText;
-    [SerializeField] private float interactionRange = 10f;
+    [SerializeField] private EnemyData enemyData; // Ссылка на EnemyData
+    public SceneLoader sceneLoader; // Ссылка на SceneLoader
+    private string _objectID; // Уникальный ID объекта
 
-    public void Interact(Transform interactorTransform) // Реализация интерфейса
+    void Start()
+    {
+        _objectID = gameObject.name;
+    }
+     public string GetInteractText()
+    {
+        return enemyData.interactText;
+    }
+
+    public string GetActionText()
+    {
+        return enemyData.actionText;
+    }
+
+    public float GetRangeInteraction()
+    {
+        return enemyData.interactionRange;
+    }
+    public void Interact(Transform interactorTransform)
     {
         Debug.Log("EnemyInteract");
-
         PlayerAttackHandler playerAttackHandler = interactorTransform.GetComponent<PlayerAttackHandler>();
-
         if (playerAttackHandler != null)
         {
-            // Запускаем корутину загрузки сцены
             StartCoroutine(InteractCoroutine(playerAttackHandler));
         }
         else
@@ -25,44 +40,22 @@ public class EnemyAttackInteract : MonoBehaviour, IInteractable
         }
     }
 
-    // Корутина для воспроизведения атаки и загрузки сцены
     private IEnumerator InteractCoroutine(PlayerAttackHandler playerAttackHandler)
     {
-        playerAttackHandler.HandleAttack(); // Запускаем анимацию атаки
-
-        // Даем анимации воспроизвестись (длительность анимации определена в PlayerAttackHandler)
+        playerAttackHandler.HandleAttack();
         yield return new WaitUntil(() => !playerAttackHandler.IsAttacking());
-
         LoadNextScene(); // Загружаем сцену после завершения атаки
     }
-
     private void LoadNextScene()
     {
         enemyRandomMovement enemyMovement = GetComponent<enemyRandomMovement>();
-        if (enemyMovement != null)
+        if (sceneLoader == null)
         {
-            enemyMovement.LoadNextSceneAndTransferData(); // Загружаем следующую сцену
+            Debug.LogError("SceneLoader не прикреплен к этому GameObject!");
+            return;
         }
-        else
-        {
-            Debug.LogError("enemyRandomMovement component not found on this GameObject!");
-        }
-    }
-
-    //текст интерфейса интерации
-    public string GetInteractText()
-    {
-        return interactText;
-    }
-
-    public string GetActionText()
-    {
-        return actionText;
-    }
-
-    public float GetRangeInteraction()
-    {
-        return interactionRange;
+        gameObject.SetActive(false);
+        sceneLoader.LoadNextSceneAndTransferData(_objectID, enemyData); // Вызываем метод загрузки сцены
     }
 
     public Transform GetTransform()

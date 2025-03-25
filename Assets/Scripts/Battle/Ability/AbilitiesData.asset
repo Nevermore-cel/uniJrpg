@@ -21,10 +21,10 @@ MonoBehaviour:
     typeAction: 2
     description: 
   - abilityName: frost
-    rangeX: 2
-    rangeY: 2
+    rangeX: 1
+    rangeY: 1
     cost: 11
-    damage: 15
+    damage: 100
     typeAction: 3
     description: 
   - abilityName: frosty
@@ -36,7 +36,7 @@ MonoBehaviour:
     description: 
   - abilityName: firety
     rangeX: 2
-    rangeY: 1
+    rangeY: 2
     cost: 11
     damage: 25
     typeAction: 2

@@ -6,25 +6,13 @@ using UnityEngine.SceneManagement;
 
 public class enemyRandomMovement : MonoBehaviour
 {
-    [SerializeField] private Animator ObjectToTrigger = null;
-    [SerializeField] private string walkAnimationTrigger = "";
-    [SerializeField] private string idleAnimationTrigger = "";
-    [SerializeField] private string attackAnimationTrigger = "";
-    [SerializeField] private string nextSceneName;
-    public Animator anim;
+    [SerializeField] private EnemyData enemyData; // Ссылка на EnemyData
+    public SceneLoader sceneLoader; // Ссылка на SceneLoader
+    [SerializeField] private Animator anim; // Ссылка на Animator
     public NavMeshAgent agent;
-    public float range;
-    public float chaseRange;
     public Transform centrePoint;
     public Transform player;
-    [SerializeField] private float idleTime = 2f;
     [SerializeField] private BoxCollider attackCollider;
-    [SerializeField] private float attackDistance = 1f;
-    [SerializeField] private float fieldOfView = 45f;
-    [SerializeField] private float hitDelay = 0.5f;
-    [SerializeField] public GameObject EnemyPrefab;
-    [SerializeField] public int EnemyCount;
-    public string SpawnTag = "SpawnPoint";
     private bool isChasing = false;
     private bool isIdle = false;
     private bool isAttacking = false;
@@ -46,32 +34,40 @@ public class enemyRandomMovement : MonoBehaviour
 
     void Start()
     {
-         if (_isInitialized) return;
+        if (_isInitialized) return;
+        if (anim == null)
+        {
+            anim = GetComponent<Animator>();
+        }
+        if (anim == null)
+        {
+            Debug.LogError("Animator не найден на этом GameObject!");
+        }
         agent = GetComponent<NavMeshAgent>();
         // Проверяем, не был ли враг уже уничтожен
         string currentSceneName = SceneManager.GetActiveScene().name;
         if (SceneData.IsObjectDestroyed(currentSceneName, _objectID))
         {
-             transform.position = _initialPosition;
-             transform.rotation = _initialRotation;
-             gameObject.SetActive(false); // Отключаем объект
+            transform.position = _initialPosition;
+            transform.rotation = _initialRotation;
+            gameObject.SetActive(false); // Отключаем объект
             return;
         }
-         if (centrePoint != null) 
+        if (centrePoint != null)
         {
             Patrol();
         }
         else
         {
             agent.isStopped = true;
-            anim.SetTrigger(idleAnimationTrigger);
+            anim.SetTrigger(enemyData.idleAnimationTrigger);
         }
         _isInitialized = true;
     }
 
     private void Update()
     {
-         if (!gameObject.activeSelf) return;
+        if (!gameObject.activeSelf) return;
         HandleChasing();
         HandleAttacking();
         HandlePatrolling();
@@ -84,7 +80,7 @@ public class enemyRandomMovement : MonoBehaviour
 
     private void HandleChasing()
     {
-        if (Vector3.Distance(transform.position, player.position) <= chaseRange)
+        if (Vector3.Distance(transform.position, player.position) <= GetChaseRange())
         {
             isChasing = true;
             agent.SetDestination(player.position);
@@ -97,12 +93,12 @@ public class enemyRandomMovement : MonoBehaviour
 
     private void HandleAttacking()
     {
-        if (Vector3.Distance(transform.position, player.position) <= attackDistance &&
+        if (Vector3.Distance(transform.position, player.position) <= GetAttackDistance() &&
             !isAttacking &&
             IsInFieldOfView(player.position))
         {
             isAttacking = true;
-            anim.SetTrigger(attackAnimationTrigger);
+            anim.SetTrigger(enemyData.attackAnimationTrigger);
             agent.isStopped = true;
             StartCoroutine(ResumeMovementAfterAttack(1f));
         }
@@ -114,8 +110,8 @@ public class enemyRandomMovement : MonoBehaviour
         {
             isIdle = true;
             agent.isStopped = true;
-            anim.SetTrigger(idleAnimationTrigger);
-            StartCoroutine(ResumeMovement(idleTime));
+            anim.SetTrigger(enemyData.idleAnimationTrigger);
+            StartCoroutine(ResumeMovement(GetIdleTime()));
         }
         else if (!isChasing && !isAttacking)
         {
@@ -128,7 +124,7 @@ public class enemyRandomMovement : MonoBehaviour
     {
         if (isChasing || (!isIdle && agent.velocity.magnitude > 0.1f))
         {
-            anim.SetTrigger(walkAnimationTrigger);
+            anim.SetTrigger(enemyData.walkAnimationTrigger);
         }
     }
 
@@ -136,7 +132,7 @@ public class enemyRandomMovement : MonoBehaviour
     {
         Vector3 directionToTarget = (targetPosition - transform.position).normalized;
         float angle = Vector3.Angle(transform.forward, directionToTarget);
-        return angle <= fieldOfView / 2f;
+        return angle <= GetFieldOfView() / 2f;
     }
 
     private void Patrol()
@@ -144,7 +140,7 @@ public class enemyRandomMovement : MonoBehaviour
         if (!hasDestination && !isChasing)
         {
             Vector3 point;
-            if (RandomPoint(centrePoint.position, range, out point))
+            if (RandomPoint(centrePoint.position, GetRange(), out point))
             {
                 NavMeshPath path = new NavMeshPath();
                 if (agent.isOnNavMesh && NavMesh.CalculatePath(transform.position, point, NavMesh.AllAreas, path))
@@ -159,6 +155,7 @@ public class enemyRandomMovement : MonoBehaviour
 
     private bool RandomPoint(Vector3 center, float range, out Vector3 result)
     {
+        result = Vector3.zero; //  Инициализируем result
         for (int i = 0; i < MAX_RANDOM_POINT_ATTEMPTS; i++)
         {
             Vector3 randomPoint = center + UnityEngine.Random.insideUnitSphere * range;
@@ -169,14 +166,13 @@ public class enemyRandomMovement : MonoBehaviour
                 return true;
             }
         }
-        result = Vector3.zero;
         return false;
     }
 
     private IEnumerator ResumeMovement(float delay)
     {
         yield return new WaitForSeconds(delay);
-        anim.SetTrigger(walkAnimationTrigger);
+        anim.SetTrigger(enemyData.walkAnimationTrigger);
         agent.isStopped = false;
         isIdle = false;
         Patrol();
@@ -186,52 +182,59 @@ public class enemyRandomMovement : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
         isAttacking = false;
-        yield return new WaitForSeconds(hitDelay);
+        yield return new WaitForSeconds(GetHitDelay());
         if (IsInFieldOfView(player.position))
         {
             isHitting = true;
             Debug.Log("Попадание!");
             string currentSceneName = SceneManager.GetActiveScene().name;
-            SceneData.MarkObjectAsDestroyed(currentSceneName,_objectID);
-             // Сохраняем позицию и поворот врага и деактивируем его
-             transform.position = _initialPosition;
-              transform.rotation = _initialRotation;
-             gameObject.SetActive(false);
-           LoadNextSceneAndTransferData();
+            SceneData.MarkObjectAsDestroyed(currentSceneName, _objectID);
+            // Сохраняем позицию и поворот врага и деактивируем его
+            transform.position = _initialPosition;
+            transform.rotation = _initialRotation;
+            gameObject.SetActive(false);
+            if (sceneLoader == null)
+            {
+                Debug.LogError("SceneLoader не прикреплен к этому GameObject!");
+                yield break; // Используем yield break вместо return
+            }
+
+            sceneLoader.LoadNextSceneAndTransferData(_objectID, enemyData); // Вызываем метод загрузки сцены
         }
         else
         {
             isHitting = false;
             Debug.Log("Промах!");
         }
-        
-         if (gameObject.activeSelf)
+
+        if (gameObject.activeSelf)
         {
-             agent.isStopped = false;
+            agent.isStopped = false;
             Patrol();
         }
     }
-
-    public void LoadNextSceneAndTransferData()
-{   
-    string currentSceneName = SceneManager.GetActiveScene().name;
-    Transform playerTransform = GameObject.FindGameObjectWithTag("Player").transform;
-    SceneData.PlayerPositions[currentSceneName] = playerTransform.position;
-    SceneData.PlayerRotations[currentSceneName] = playerTransform.rotation;
-    SceneData.previousScene = currentSceneName;
-    
-    // Убедитесь, что статические поля очищены перед установкой новых значений
-    StartScene.prefabToSpawn = EnemyPrefab;
-    StartScene.spawnCount = EnemyCount;
-    StartScene.SpawnTag = SpawnTag;
-    StartScene.nextSceneName = nextSceneName;
-
-    // Сначала подписываемся на событие, затем начинаем загрузку
-    SceneManager.sceneLoaded += StartScene.OnSceneLoaded;
-    AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(StartScene.nextSceneName);
-    
-    // Убрать блокировку активации сцены, если она не нужна
-    asyncLoad.allowSceneActivation = true; 
-    
-}
+    public float GetRange()
+    {
+        return enemyData.range;
+    }
+    public float GetChaseRange()
+    {
+        return enemyData.chaseRange;
+    }
+    public float GetIdleTime()
+    {
+        return enemyData.idleTime;
+    }
+    public float GetAttackDistance()
+    {
+        return enemyData.attackDistance;
+    }
+    public float GetFieldOfView()
+    {
+        return enemyData.fieldOfView;
+    }
+    public float GetHitDelay()
+    {
+        return enemyData.hitDelay;
+    }
 }

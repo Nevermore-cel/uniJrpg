@@ -66,5 +66,32 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f8a73162eeb62a2458cf112128c18274,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 650679746553102038}
   m_SourcePrefab: {fileID: 100100000, guid: f8a73162eeb62a2458cf112128c18274, type: 3}
+--- !u!1 &65444925591279282 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: f8a73162eeb62a2458cf112128c18274,
+    type: 3}
+  m_PrefabInstance: {fileID: 876486696751164387}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &650679746553102038
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 65444925591279282}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b215441fc1ebfb6498360cb53c09fdfa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  x: 0
+  y: 0
+  gridPosition: {x: 0, y: 0, z: 0}
+  defaultColor: {r: 0, g: 0, b: 0, a: 0}
+  highlightColor: {r: 0, g: 1, b: 0, a: 1}

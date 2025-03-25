@@ -63,20 +63,27 @@ public class UnitCombatStats
 
     public void TakeDamage(int damage, ActionType damageType, string damageSourceName, bool isCrit)
     {
-        if (isCrit)
+          if (damage > 0)
         {
-            damage *= 2;
-            Debug.Log($"{unitData.unitName} performed a CRITICAL HIT!");
-        }
+             if (isCrit)
+            {
+                damage *= 2;
+                Debug.Log($"{unitData.unitName} performed a CRITICAL HIT!");
+            }
 
-        float modifiedDamage = CalculateDamage(damage, damageType);
-       int finalHealth = unitData.currentHealth - (int)modifiedDamage;
-    if (finalHealth <= 0)
-        {
-                Die();
+            float modifiedDamage = CalculateDamage(damage, damageType);
+            int finalHealth = unitData.currentHealth - (int)modifiedDamage;
+            if (finalHealth <= 0)
+            {
+                    Die();
+            }
+            unitData.currentHealth = Mathf.Clamp(finalHealth, 0, unitData.maxHealth);
+            Debug.Log($"{unitData.unitName} took {modifiedDamage} damage from '{damageSourceName}'. Current health: {unitData.currentHealth}");
         }
-    unitData.currentHealth = Mathf.Clamp(finalHealth, 0, unitData.maxHealth);
-        Debug.Log($"{unitData.unitName} took {modifiedDamage} damage from '{damageSourceName}'. Current health: {unitData.currentHealth}");
+        else
+        {
+            Debug.Log($"{unitData.unitName} took 0 damage from '{damageSourceName}'. Current health: {unitData.currentHealth}");
+        }
     }
     private float CalculateDamage(int damage, ActionType attackType)
     {

@@ -11,7 +11,6 @@ public class StartScene : MonoBehaviour
 
     public static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        Debug.Log("Scene Level1 loaded!");
         if (SceneManager.GetActiveScene().name == nextSceneName)
         {
             sceneLoaded = true;

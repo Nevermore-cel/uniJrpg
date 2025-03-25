@@ -1,6 +1,7 @@
- using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using TMPro;
 
 public class ActionSelectorController : MonoBehaviour
 {
@@ -12,14 +13,13 @@ public class ActionSelectorController : MonoBehaviour
     public Button itemButton;
 
     private bool interfaceIsActive = false;
-    private enum ActionType { Ability, Item, None }
-    private ActionType currentActionType = ActionType.None;
+    public enum ActionType { Ability, Item, None }
+    public ActionType currentActionType = ActionType.None;
     public int currentUnitID;
     private bool isSelectingTarget = false;
     private AbilityData selectedAbility;
     private ItemData selectedItem;
     private UnitData targetUnit;
-
     private CombatManager combatManager;
     private List<UnitData> allUnits;
 
@@ -27,7 +27,10 @@ public class ActionSelectorController : MonoBehaviour
     public Transform abilityPanel;
     public GameObject abilityInfoPrefab;
     public float verticalSpacing = 30f;
-    private AbilityItemCreator _abilityItemCreator;
+    public AbilityItemCreator _abilityItemCreator;
+    public ActionSelector actionSelector; // ссылка на ActionSelector
+    private GameObject _lastSelectedAbilityButton; //  Последняя подсвеченная кнопка
+    private GameObject _lastSelectedItemButton; //  Последняя подсвеченная кнопка
 
     void Start()
     {
@@ -63,6 +66,14 @@ public class ActionSelectorController : MonoBehaviour
         }
         abilityButton.onClick.AddListener(ShowAbilities);
         itemButton.onClick.AddListener(ShowItems);
+        if (actionSelector == null)
+        {
+            actionSelector = FindObjectOfType<ActionSelector>();
+            if (actionSelector == null)
+            {
+                Debug.LogError("ActionSelector not found!");
+            }
+        }
     }
 
     public void ShowAbilities()
@@ -71,6 +82,7 @@ public class ActionSelectorController : MonoBehaviour
         currentActionType = ActionType.Ability;
         _abilityItemCreator.HideItems();
         ShowActionSelector();
+        HighlightSelectedAbility();
     }
 
     public void ShowItems()
@@ -79,6 +91,7 @@ public class ActionSelectorController : MonoBehaviour
         currentActionType = ActionType.Item;
         _abilityItemCreator.HideAbilities();
         ShowActionSelector();
+        HighlightSelectedItem();
     }
 
     private void ResetSelection()
@@ -102,7 +115,24 @@ public class ActionSelectorController : MonoBehaviour
     public void SetUnitItems(int unitId, List<ItemData> items)
     {
         UnitData unitData = GetUnitData(unitId);
-        _abilityItemCreator.SetUnitItems(items, unitId, unitData, OnItemButtonClicked);
+
+        // Получаем UnitData игрока (если это компаньон)
+        UnitData playerUnitData = null;
+        if (unitData != null && unitData.playerUnitData != null)
+        {
+            playerUnitData = unitData.playerUnitData;
+        }
+
+        if (playerUnitData != null)
+        {
+            _abilityItemCreator.SetUnitItems(items, unitId, playerUnitData, OnItemButtonClicked);
+        }
+        else
+        {
+            // Если это игрок
+            _abilityItemCreator.SetUnitItems(items, unitId, unitData, OnItemButtonClicked);
+        }
+
     }
     public void ShowActionSelector()
     {
@@ -120,7 +150,7 @@ public class ActionSelectorController : MonoBehaviour
             }
         }
     }
-      public void ClearAllAbilityInfo()
+    public void ClearAllAbilityInfo()
     {
         _abilityItemCreator.ClearAllAbilityInfoElements();
     }
@@ -137,25 +167,104 @@ public class ActionSelectorController : MonoBehaviour
             ResetSelection();
         }
     }
-
-    private void OnAbilityButtonClicked(AbilityData ability, GameObject clickedButton)
+        private void OnAbilityButtonClicked(AbilityData ability, GameObject clickedButton)
     {
         _abilityItemCreator.SelectAbility(ability, clickedButton);
-        isSelectingTarget = true;
+        _lastSelectedAbilityButton = clickedButton;
         selectedAbility = ability;
         selectedItem = null;
+         if (actionSelector != null)
+        {
+             actionSelector.TriggerAbilityButton();
+             isSelectingTarget = true;
+        }
+        else
+        {
+            Debug.LogError("ActionSelector is null!");
+        }
         Debug.Log($"Ability '{ability.abilityName}' selected, selecting target");
     }
+    public void HighlightSelectedAbility()
+    {
+        if (actionSelector == null)
+        {
+            Debug.LogError("ActionSelector is null!");
+            return;
+        }
 
-    private void OnItemButtonClicked(ItemData item, GameObject clickedButton)
+        // Сбрасываем цвет предыдущей кнопки
+        if (_lastSelectedAbilityButton != null)
+        {
+            _lastSelectedAbilityButton.GetComponent<Image>().color = defaultColor;
+        }
+         if (actionSelector.availableAbilities != null && actionSelector.availableAbilities.Count > 0)
+        {
+             AbilityData ability = actionSelector.availableAbilities[actionSelector.currentAbilityIndex];
+             foreach (var kvp in _abilityItemCreator.unitAbilities)
+            {
+                foreach (var go in kvp.Value.Values)
+                {
+                    TextMeshProUGUI nameText = go.transform.Find("AbilityName").GetComponent<TextMeshProUGUI>();
+                      if (nameText.text == ability.abilityName)
+                    {
+                        _lastSelectedAbilityButton = go;
+                        _lastSelectedAbilityButton.GetComponent<Image>().color = selectedColor;
+                         return;
+                    }
+                }
+            }
+        }
+    }
+        private void OnItemButtonClicked(ItemData item, GameObject clickedButton)
     {
         _abilityItemCreator.SelectItem(item, clickedButton);
-        isSelectingTarget = true;
+        _lastSelectedItemButton = clickedButton;
         selectedItem = item;
         selectedAbility = null;
+        if (actionSelector != null)
+        {
+            actionSelector.TriggerAbilityButton();
+            isSelectingTarget = true;
+        }
+        else
+        {
+            Debug.LogError("ActionSelector is null!");
+        }
         Debug.Log($"Item '{item.itemName}' selected, selecting target");
     }
+    public void HighlightSelectedItem()
+    {
+        if (actionSelector == null)
+        {
+            Debug.LogError("ActionSelector is null!");
+            return;
+        }
 
+        // Сбрасываем цвет предыдущей кнопки
+        if (_lastSelectedItemButton != null)
+        {
+            _lastSelectedItemButton.GetComponent<Image>().color = defaultColor;
+        }
+
+        if (actionSelector.availableItems != null && actionSelector.availableItems.Count > 0)
+        {
+            ItemData item = actionSelector.availableItems[actionSelector.currentItemIndex];
+            foreach (var kvp in _abilityItemCreator.unitItems)
+            {
+                foreach (var go in kvp.Value.Values)
+                {
+                    TextMeshProUGUI nameText = go.transform.Find("AbilityName").GetComponent<TextMeshProUGUI>();
+                    if (nameText.text == item.itemName)
+                    {
+                        _lastSelectedItemButton = go;
+                        _lastSelectedItemButton.GetComponent<Image>().color = selectedColor;
+                        return;
+                    }
+                }
+            }
+        }
+    }
+        
     void Update()
     {
         if (isSelectingTarget && Input.GetMouseButtonDown(0))
@@ -163,6 +272,7 @@ public class ActionSelectorController : MonoBehaviour
             HandleTargetSelection();
             isSelectingTarget = false;
         }
+        HighlightSelectedAbility();
     }
 
     private void HandleTargetSelection()
@@ -187,7 +297,7 @@ public class ActionSelectorController : MonoBehaviour
                         bool isCrit = currentUnit.CalculateCrit(); // Calculate crit for ability use
                         targetUnit.ApplyAbilityEffect(selectedAbility, isCrit); // Pass isCrit
                         Debug.Log($"Ability '{selectedAbility.abilityName}' Target Unit '{targetUnit.unitName}', ID {targetUnit.unitID}, Type: {selectedAbility.typeAction}");
-                         HideActionSelector();
+                        HideActionSelector();
                         combatManager.EndTurn();
                     }
                     else
@@ -197,35 +307,19 @@ public class ActionSelectorController : MonoBehaviour
                 }
                 else if (selectedItem != null)
                 {
-                    if (currentUnit != null && currentUnit.gameObject.CompareTag("Companion") && battleInterfaceController != null)
+                    if (currentUnit != null)
                     {
-                        UnitData playerUnit = battleInterfaceController.GetPlayerUnit();
-                        if (playerUnit.CanUseItem(selectedItem))
-                        {
-                            playerUnit.UseItem(selectedItem, currentUnit);
-                            bool isCrit = currentUnit.CalculateCrit(); // Calculate crit for item use
-                            targetUnit.ApplyItemEffect(selectedItem, targetUnit, isCrit); // Pass isCrit
-                            Debug.Log($"Item '{selectedItem.itemName}' Target Unit '{targetUnit.unitName}', ID {targetUnit.unitID}, Type: {selectedItem.typeAction}, used from player's inventory");
-                             HideActionSelector();
-                           
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"Unit with ID {currentUnitID} has not enough  {selectedItem.itemName}");
-                        }
-                    }
-                    else if (currentUnit != null && currentUnit.CanUseItem(selectedItem))
-                    {
-                        currentUnit.UseItem(selectedItem);
+                        currentUnit.UseItem(selectedItem, targetUnit);
+                        
                         bool isCrit = currentUnit.CalculateCrit(); // Calculate crit for item use
                         targetUnit.ApplyItemEffect(selectedItem, targetUnit, isCrit); // Pass isCrit
-                        Debug.Log($"Item '{selectedItem.itemName}' Target Unit '{targetUnit.unitName}', ID {targetUnit.unitID}, Type: {selectedItem.typeAction}");
-                           HideActionSelector();
-                         
+                         Debug.Log($"Item '{selectedItem.itemName}' Target Unit '{targetUnit.unitName}', ID: {targetUnit.unitID}, Type: {selectedItem.typeAction}");
+                        HideActionSelector();
+                        combatManager.EndTurn();
                     }
                     else
                     {
-                        Debug.LogWarning($"Unit with ID {currentUnitID} has not enough  {selectedItem.itemName}");
+                        Debug.LogWarning($"Unit with ID {currentUnitID} has not enough points to use {selectedItem.itemName}");
                     }
                 }
             }
@@ -238,11 +332,11 @@ public class ActionSelectorController : MonoBehaviour
         {
             Debug.Log("Clicked on nothing, target selection cancelled");
         }
-                if (combatManager.CheckCombatEnd()) // Check if combat ended
-               {
-                  return; // Exit if combat ended
-               }
-                   combatManager.EndTurn(); // Guarantee EndTurn() is called
+        if (combatManager.CheckCombatEnd()) // Check if combat ended
+        {
+            return; // Exit if combat ended
+        }
+        combatManager.EndTurn(); // Guarantee EndTurn() is called
         isSelectingTarget = false;
         selectedAbility = null;
         selectedItem = null;
@@ -263,10 +357,5 @@ public class ActionSelectorController : MonoBehaviour
         }
         Debug.LogWarning($"No unit found with ID {unitId}");
         return null;
-    }
-
-    public bool IsInterfaceActive()
-    {
-        return interfaceIsActive;
     }
 }

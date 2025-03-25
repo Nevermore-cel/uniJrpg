@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.SceneManagement;
 
 public class CombatManager : MonoBehaviour
 {
@@ -10,7 +11,7 @@ public class CombatManager : MonoBehaviour
     public string enemyTag = "Enemy";
     public ActionSelectorController actionSelectorController;
     public BattleInterfaceController battleInterfaceController;
-    [SerializeField] private ExitInteract exitInteract;
+    [SerializeField] private string previousSceneName;  // Название предыдущей сцены
 
     public List<UnitData> allUnits = new List<UnitData>();
     public List<UnitData> playerTeam = new List<UnitData>();
@@ -40,10 +41,6 @@ public class CombatManager : MonoBehaviour
         {
             battleInterfaceController = FindObjectOfType<BattleInterfaceController>();
         }
-        if (exitInteract == null)
-        {
-            Debug.LogError("ExitInteract не назначен в CombatManager!");
-        }
     }
 
     public IEnumerator InitializeCombat()
@@ -63,7 +60,7 @@ public class CombatManager : MonoBehaviour
     }
     public bool CheckCombatEnd()
     {
-        if (endChecker.CheckCombatEnd(playerTeam, enemyTeam, actionSelectorController))
+        if (endChecker.CheckCombatEnd(playerTeam, enemyTeam, actionSelectorController, previousSceneName)) // Передаем название сцены
         {
             return true;
         }
@@ -73,7 +70,7 @@ public class CombatManager : MonoBehaviour
     {
         if (!isCombatActive) return;
 
-        if (endChecker.CheckCombatEnd(playerTeam, enemyTeam, actionSelectorController)) return;
+        if (endChecker.CheckCombatEnd(playerTeam, enemyTeam, actionSelectorController, previousSceneName)) return;
 
         UnitData currentUnit = turnManager.GetCurrentUnit();
         if (currentUnit == null)
@@ -172,14 +169,6 @@ public class CombatManager : MonoBehaviour
         isCombatActive = false;
         Debug.Log(winnerMessage);
         Debug.Log("Combat Ended!");
-        if (exitInteract != null)
-        {
-            exitInteract._active = !exitInteract._active;
-        }
-        else
-        {
-            Debug.LogWarning("ExitInteract is null in CombatManager!");
-        }
         if (actionSelectorController != null)
         {
             actionSelectorController.HideActionSelector();

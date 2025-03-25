@@ -12,12 +12,15 @@ public class Attack : MonoBehaviour
     private bool isSelectingTarget = false;
     private List<UnitData> allUnits;
     public BattleInterfaceController battleInterfaceController;
-    private UnitData _selectedTarget;
+    public UnitData _selectedTarget;
+
+    public TargetSelector targetSelector; // Добавлена ссылка на TargetSelector
 
     void Start()
     {
         combatManager = FindObjectOfType<CombatManager>();
         actionSelectorController = FindObjectOfType<ActionSelectorController>();
+        targetSelector = FindObjectOfType<TargetSelector>(); // Находим TargetSelector
         if (combatManager != null)
         {
             allUnits = combatManager.GetAllUnits();
@@ -41,84 +44,52 @@ public class Attack : MonoBehaviour
     }
     public void OnAttackButtonClicked() // Теперь public и не static
     {
-        if (combatManager != null && actionSelectorController != null)
+        if (targetSelector != null)
         {
-            isSelectingTarget = true;
-            Debug.Log($"Attack selected, selecting target");
-            foreach (Unit unit in FindObjectsOfType<Unit>())
-            {
-                unit.SetCanBeSelected(false);
-            }
+            targetSelector.InitializeTargets(true);
+              currentUnit = GetCurrentUnitData(actionSelectorController.currentUnitID);
+             targetSelector.isSelectingTarget = true;
+           Debug.Log($"Attack selected, selecting target");
         }
         else
         {
-            Debug.LogError("CombatManager or ActionSelectorController is null");
+            Debug.LogError("TargetSelector is null");
         }
     }
-    private void Update()
-    {
-        if (isSelectingTarget && Input.GetMouseButtonDown(0))
-        {
-            HandleTargetSelection();
-            isSelectingTarget = false;
-        }
-    }
-    private void HandleTargetSelection()
-    {
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
-        if (Physics.Raycast(ray, out hit))
-        {
-            GameObject target = hit.collider.gameObject;
-            _selectedTarget = target.GetComponent<UnitData>();
-            if (_selectedTarget != null)
-            {
-                // Get current Unit
-                currentUnit = GetCurrentUnitData(actionSelectorController.currentUnitID);
-                if (currentUnit != null)
-                {
-                    // Apply damage
-                    ApplyDamageToTarget();
-                    // End the turn, передавая цель
-                    EndTurn(_selectedTarget);
-                }
-                else
-                {
-                    CancelAttack();
-                    Debug.LogWarning($"Unit with ID {actionSelectorController.currentUnitID} not found!");
-                }
-            }
-            else
-            {
-                CancelAttack();
-                Debug.LogWarning("Target clicked has no UnitData Component");
-            }
-        }
-        else
-        {
-            CancelAttack();
-            Debug.Log("Clicked on nothing, target selection cancelled");
-        }
-        isSelectingTarget = false;
-        foreach (Unit unit in FindObjectsOfType<Unit>())
-        {
-            unit.SetCanBeSelected(true);
-        }
-    }
-    private void ApplyDamageToTarget()
+     public void ApplyDamageToTarget()
     {
         // Apply damage to the target
         if (_selectedTarget != null && currentUnit != null)
         {
             bool isCrit = currentUnit.CalculateCrit();
             _selectedTarget.TakeDamage(currentUnit.attackDamage, currentUnit.attackType, currentUnit.unitName, isCrit);
-
             Debug.Log($"Attack Target Unit '{_selectedTarget.unitName}', ID {_selectedTarget.unitID}, Type: {currentUnit.attackType}");
         }
         else
         {
             Debug.LogWarning("Target Unit or Current Unit is null!");
         }
+    }
+    private void Update()
+    {
+        if (isSelectingTarget && Input.GetKeyDown(KeyCode.Return))
+        {
+             HandleTargetSelection();
+              isSelectingTarget = false;
+        }
+    }
+    private void HandleTargetSelection()
+    {
+          if (targetSelector != null && targetSelector.SelectedTarget != null)
+        {
+            // Мы уже вызываем ApplyDamageToTarget в TargetSelector.ConfirmTarget
+              _selectedTarget = targetSelector.SelectedTarget;
+           }
+           else
+           {
+               CancelAttack();
+               Debug.LogWarning("Target clicked has no UnitData Component");
+           }
     }
     private UnitData GetCurrentUnitData(int unitId)
     {
@@ -153,9 +124,5 @@ public class Attack : MonoBehaviour
     public void CancelAttack()
     {
         isSelectingTarget = false;
-        foreach (Unit unit in FindObjectsOfType<Unit>())
-        {
-            unit.SetCanBeSelected(true);
-        }
     }
 }

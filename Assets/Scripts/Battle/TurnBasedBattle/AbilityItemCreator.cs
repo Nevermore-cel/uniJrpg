@@ -13,8 +13,8 @@ public class AbilityItemCreator
     private Color selectedColor;
     private GameObject currentlySelectedAbility = null;
     private GameObject currentlySelectedItem = null;
-    private Dictionary<int, Dictionary<int, GameObject>> unitAbilities = new Dictionary<int, Dictionary<int, GameObject>>();
-    private Dictionary<int, Dictionary<int, GameObject>> unitItems = new Dictionary<int, Dictionary<int, GameObject>>();
+    public Dictionary<int, Dictionary<int, GameObject>> unitAbilities = new Dictionary<int, Dictionary<int, GameObject>>();
+   public Dictionary<int, Dictionary<int, GameObject>> unitItems = new Dictionary<int, Dictionary<int, GameObject>>();
 
     // Делегаты для Unity методов (передаются из MonoBehaviour)
     private System.Func<GameObject, Transform, GameObject> instantiateDelegate;
@@ -206,7 +206,7 @@ public class AbilityItemCreator
         }
     }
 
-    private void CreateItemInfoElements(List<ItemData> items, int unitId, UnitData unitData)
+      private void CreateItemInfoElements(List<ItemData> items, int unitId, UnitData unitData)
     {
         RectTransform panelRect = abilityPanel.GetComponent<RectTransform>();
         if (panelRect == null) { Debug.LogError("abilityPanel missing RectTransform"); return; }
@@ -214,6 +214,9 @@ public class AbilityItemCreator
         unitItems[unitId] = new Dictionary<int, GameObject>();
         float yOffset = 0;
         float itemHeight = 20f;
+
+        // Get player UnitData if this is a companion
+        UnitData playerUnitData = unitData.playerUnitData != null ? unitData.playerUnitData : unitData;
 
         for (int i = 0; i < items.Count; i++)
         {
@@ -243,16 +246,9 @@ public class AbilityItemCreator
                 destroyDelegate(itemInfo); // Используем переданный делегат
                 continue;
             }
+
             nameText.text = items[i].itemName;
-            int itemQuantity;
-            if (unitData != null && unitData.gameObject.CompareTag("Player"))
-            {
-                itemQuantity = unitData.GetItemQuantity(items[i]);
-            }
-            else
-            {
-                itemQuantity = unitData.GetItemQuantity(items[i]);
-            }
+            int itemQuantity = playerUnitData.GetItemQuantity(items[i]);
             costText.text = itemQuantity.ToString();
 
             button.GetComponent<Image>().color = defaultColor;
@@ -280,8 +276,8 @@ public class AbilityItemCreator
         {
             GameObject matchingAbilityInfo = unitAbilities[unitId].Values.FirstOrDefault(go =>
                 go.GetComponent<Button>().onClick.GetPersistentEventCount() > 0 &&
-                go.GetComponent<Button>().onClick.GetPersistentTarget(0).Equals(this) &&
-                go.GetComponent<Button>().onClick.GetPersistentMethodName(0) == nameof(OnAbilityButtonClicked) &&
+                go.GetComponent<Button>().onClick.GetPersistentTarget(0).Equals(onAbilityButtonClickedDelegate.Target) &&
+                go.GetComponent<Button>().onClick.GetPersistentMethodName(0) == onAbilityButtonClickedDelegate.Method.Name &&
                 go.GetComponentInChildren<TextMeshProUGUI>(true).text == ability.abilityName
             );
 
@@ -308,8 +304,8 @@ public class AbilityItemCreator
         {
             GameObject matchingItemInfo = unitItems[unitId].Values.FirstOrDefault(go =>
                 go.GetComponent<Button>().onClick.GetPersistentEventCount() > 0 &&
-                go.GetComponent<Button>().onClick.GetPersistentTarget(0).Equals(this) &&
-                go.GetComponent<Button>().onClick.GetPersistentMethodName(0) == nameof(OnItemButtonClicked) &&
+                go.GetComponent<Button>().onClick.GetPersistentTarget(0).Equals(onItemButtonClickedDelegate.Target) &&
+                go.GetComponent<Button>().onClick.GetPersistentMethodName(0) == onItemButtonClickedDelegate.Method.Name &&
                 go.GetComponentInChildren<TextMeshProUGUI>(true).text == item.itemName
             );
 
