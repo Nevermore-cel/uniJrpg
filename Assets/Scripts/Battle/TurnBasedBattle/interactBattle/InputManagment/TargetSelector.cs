@@ -40,6 +40,8 @@ public class TargetSelector : MonoBehaviour
 
         currentTargetIndex = 0;
         HighlightTarget(selectableTargets[currentTargetIndex]);
+        _selectedTarget = selectableTargets[currentTargetIndex];
+        attack._selectedTarget = _selectedTarget;
     }
 
     public void SelectNextTarget()
@@ -72,34 +74,47 @@ public class TargetSelector : MonoBehaviour
 
       public void ConfirmTarget()
     {
-        if (isSelectingTarget)
-        {
-            if (_selectedTarget != null && attack != null) // Added attack != null check
-            {
-                // Get current Unit
-                UnitData currentUnit = GetCurrentUnitData(actionSelectorController.currentUnitID);
-                if (currentUnit != null)
-                {
-                    attack.ApplyDamageToTarget(); // Call ApplyDamageToTarget from Attack script
-                    Debug.Log($"{currentUnit.unitName} Attack {_selectedTarget.unitName}, ID: {_selectedTarget.unitID}");
-                    isSelectingTarget = false;
-                    combatManager.EndTurn();
-                    actionSelectorController.HideActionSelector();
-                }
-                else
-                {
-                    Debug.LogWarning($"Unit with ID {actionSelectorController.currentUnitID} not found!");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("Нет выбранной цели или способности");
-            }
-        }
-        else
+        
+         if (!isSelectingTarget)
         {
             Debug.LogWarning("Не в режиме выбора цели");
+            return;
         }
+        if (_selectedTarget == null ) // Added attack != null check
+        {
+            Debug.LogWarning("Нет выбранной цели или способности");
+            return;
+        }
+              // Get current Unit
+                UnitData currentUnit = GetCurrentUnitData(actionSelectorController.currentUnitID);
+                if (currentUnit == null)
+                {
+                    Debug.LogWarning($"Unit with ID {actionSelectorController.currentUnitID} not found!");
+                    return;
+                }
+                 if(selectedAbility != null){
+                     if (currentUnit.CanUseAbility(selectedAbility))
+                    {
+                         currentUnit.DeductActionPoints(selectedAbility.cost);
+                        bool isCrit = currentUnit.CalculateCrit(); // Calculate crit for ability use
+                         _selectedTarget.ApplyAbilityEffect(selectedAbility, isCrit); // Pass isCrit
+
+                     }
+                }
+                else if(selectedItem != null){
+                       if (currentUnit.CanUseItem(selectedItem))
+                    {
+                           currentUnit.UseItem(selectedItem, _selectedTarget); 
+                           bool isCrit = currentUnit.CalculateCrit(); // Calculate crit for item use
+                           _selectedTarget.ApplyItemEffect(selectedItem, _selectedTarget, isCrit); // Pass isCrit
+                    }
+                }
+            
+            
+             Debug.Log($"{currentUnit.unitName} Attack {_selectedTarget.unitName}, ID: {_selectedTarget.unitID}");
+              isSelectingTarget = false;
+              combatManager.EndTurn();
+              actionSelectorController.HideActionSelector();
     }
 
     private void HighlightTarget(UnitData target)

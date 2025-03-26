@@ -30,7 +30,11 @@ public class InputManager : MonoBehaviour
 
      if (Input.GetKeyDown(KeyCode.Return)) // Подтверждение цели (Enter)
      {
-          targetSelector.ConfirmTarget();
+         if (targetSelector.isSelectingTarget)
+         {
+              targetSelector.ConfirmTarget();
+         }
+         
      }
     }
     private void HandleActionSelection()
@@ -79,7 +83,9 @@ public class InputManager : MonoBehaviour
         }
         if (Input.GetKeyDown(KeyCode.Return)) // Enter - "нажимаем" на выбранную способность
         {
-           targetSelector.ConfirmTarget();
+           if(!targetSelector.isSelectingTarget){
+                actionSelector.TriggerAbilityButton();
+           }
         }
     }
     private void UpdateAbilityButtons()
