@@ -83,6 +83,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: corrodorLadderDung
       objectReference: {fileID: 0}
+    - target: {fileID: 1364974133809703462, guid: 330e350c2523f034eb091b5d3f2b775d,
+        type: 3}
+      propertyPath: m_Materials.Array.data[0]
+      value: 
+      objectReference: {fileID: 2100000, guid: 946fc007386f3934ebebe28aea5dacb8, type: 2}
     - target: {fileID: 1816810997491621850, guid: 330e350c2523f034eb091b5d3f2b775d,
         type: 3}
       propertyPath: m_LocalScale.x

@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Collections.Generic;
+using System.Linq;
 
 public class SceneLoader : MonoBehaviour
 {
@@ -22,6 +24,14 @@ public class SceneLoader : MonoBehaviour
         {
             SceneData.MarkObjectAsDestroyed(currentSceneName, objectID);
         }
+        // Сохраняем состояние подобранных предметов (ключей)
+        KeyInventory keyInventory = playerTransform.GetComponent<KeyInventory>();
+        if (keyInventory != null)
+        {
+             SavePickedUpKeysState(currentSceneName,keyInventory.keys);
+        }
+        // Сохраняем состояние уничтоженных объектов
+         SaveDestroyedObjectsState(currentSceneName);
         // Сначала подписываемся на событие, затем начинаем загрузку
         SceneManager.sceneLoaded += StartScene.OnSceneLoaded;
         AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(enemyData.nextSceneName);
@@ -29,4 +39,18 @@ public class SceneLoader : MonoBehaviour
         // Убрать блокировку активации сцены, если она не нужна
         asyncLoad.allowSceneActivation = true;
     }
+       private void SavePickedUpKeysState(string sceneName, List<KeyData> collectedKeys)
+    {
+        if (!SceneData.KeyInventories.ContainsKey(sceneName))
+        {
+            SceneData.KeyInventories[sceneName] = new List<string>();
+        }
+           SceneData.KeyInventories[sceneName] = collectedKeys.Select(key => key.keyName).ToList();
+    }
+    private void SaveDestroyedObjectsState(string sceneName)
+    {
+        // Здесь можно добавить логику для сохранения списка уничтоженных объектов
+        // Например, можно сохранить их идентификаторы в SceneData.DestroyedObjects
+    }
+
 }
