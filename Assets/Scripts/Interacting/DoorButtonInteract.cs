@@ -5,15 +5,18 @@ using UnityEngine;
 public class DoorButtonInteract : MonoBehaviour, IInteractable
 {
     [SerializeField] private string interactText = "Open Door";
+    [SerializeField] private string closeInteractText = "Close Door"; // Text when door is open
     [SerializeField] private string actionText = "Press";
     [SerializeField] private float interactionRange = 3f;
     [SerializeField] private DoorController doorToOpen; // Ссылка на скрипт двери
     [SerializeField] private KeyData requiredKey; // Ключ для открытия двери
     [SerializeField] private string animationBoolName = "doorOpen"; // Название параметра в аниматоре двери
 
+    public bool _isDoorOpen = false;
+    
     public string GetInteractText()
     {
-        return interactText;
+        return _isDoorOpen ? closeInteractText : interactText; // Change interaction text based on door state
     }
 
     public string GetActionText()
@@ -35,7 +38,15 @@ public class DoorButtonInteract : MonoBehaviour, IInteractable
             {
                 if (doorToOpen != null)
                 {
-                    doorToOpen.OpenDoor(animationBoolName);
+                    if (_isDoorOpen)
+                    {
+                        doorToOpen.CloseDoor(animationBoolName);
+                    }
+                    else
+                    {
+                        doorToOpen.OpenDoor(animationBoolName);
+                    }
+                     _isDoorOpen = !_isDoorOpen;
                 }
                 else
                 {

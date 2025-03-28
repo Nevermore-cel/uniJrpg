@@ -19,6 +19,8 @@ public class SceneDoorManager : MonoBehaviour
             Dictionary<string, bool> doorStates = SceneData.DoorStates[sceneName];
             foreach (var door in doors)
             {
+                if (door == null) continue; // Проверка, что дверь ещё существует
+
                 if (doorStates.ContainsKey(door.gameObject.name))
                 {
                     // Устанавливаем состояние двери из SceneData
@@ -30,7 +32,17 @@ public class SceneDoorManager : MonoBehaviour
                     {
                         door.CloseDoor("doorOpen");
                     }
+                    // Get correct door state
+                    foreach(DoorButtonInteract button in FindObjectsOfType<DoorButtonInteract>())
+                    {
+                         if (doorStates.ContainsKey(door.gameObject.name))
+                         {
+                            button._isDoorOpen = doorStates[door.gameObject.name];
+                         }
+                         
+                    }
                 }
+                
             }
         }
     }
@@ -47,6 +59,7 @@ public class SceneDoorManager : MonoBehaviour
         // Записываем состояние каждой двери в словарь
         foreach (var door in doors)
         {
+            if (door == null) continue; // Проверка, что дверь ещё существует
             //Проверка состояния аниматора здесь
             Animator animator = door.GetComponent<Animator>();
              if (animator != null)
