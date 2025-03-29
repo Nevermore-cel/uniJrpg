@@ -116,7 +116,6 @@ public class ActionSelectorController : MonoBehaviour
     {
         UnitData unitData = GetUnitData(unitId);
 
-        // Получаем UnitData игрока (если это компаньон)
         UnitData playerUnitData = null;
         if (unitData != null && unitData.playerUnitData != null)
         {
@@ -129,7 +128,6 @@ public class ActionSelectorController : MonoBehaviour
         }
         else
         {
-            // Если это игрок
             _abilityItemCreator.SetUnitItems(items, unitId, unitData, OnItemButtonClicked);
         }
 
@@ -197,19 +195,21 @@ public class ActionSelectorController : MonoBehaviour
         {
             _lastSelectedAbilityButton.GetComponent<Image>().color = defaultColor;
         }
-         if (actionSelector.availableAbilities != null && actionSelector.availableAbilities.Count > 0)
+
+        //  Добавлена проверка, что список способностей не пуст и индекс в пределах допустимого диапазона
+           if (actionSelector.availableAbilities != null && actionSelector.availableAbilities.Count > 0 && actionSelector.currentAbilityIndex >= 0 && actionSelector.currentAbilityIndex < actionSelector.availableAbilities.Count)
         {
-             AbilityData ability = actionSelector.availableAbilities[actionSelector.currentAbilityIndex];
-             foreach (var kvp in _abilityItemCreator.unitAbilities)
+            AbilityData ability = actionSelector.availableAbilities[actionSelector.currentAbilityIndex];
+            foreach (var kvp in _abilityItemCreator.unitAbilities)
             {
                 foreach (var go in kvp.Value.Values)
                 {
                     TextMeshProUGUI nameText = go.transform.Find("AbilityName").GetComponent<TextMeshProUGUI>();
-                      if (nameText.text == ability.abilityName)
+                    if (nameText.text == ability.abilityName)
                     {
                         _lastSelectedAbilityButton = go;
                         _lastSelectedAbilityButton.GetComponent<Image>().color = selectedColor;
-                         return;
+                        return;
                     }
                 }
             }
@@ -272,7 +272,7 @@ public class ActionSelectorController : MonoBehaviour
             HandleTargetSelection();
             isSelectingTarget = false;
         }
-        HighlightSelectedAbility();
+       HighlightSelectedAbility();
     }
 
     private void HandleTargetSelection()

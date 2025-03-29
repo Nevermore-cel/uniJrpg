@@ -4,7 +4,7 @@ using System.Linq;
 
 public class Attack : MonoBehaviour
 {
-    public int attackDamage; // Урон, который будет нанесен
+    public int attackDamage;
     private CombatManager combatManager;
     private ActionSelectorController actionSelectorController;
     private UnitData currentUnit;
@@ -14,13 +14,13 @@ public class Attack : MonoBehaviour
     public BattleInterfaceController battleInterfaceController;
     public UnitData _selectedTarget;
 
-    public TargetSelector targetSelector; // Добавлена ссылка на TargetSelector
+    public TargetSelector targetSelector;
 
     void Start()
     {
         combatManager = FindObjectOfType<CombatManager>();
         actionSelectorController = FindObjectOfType<ActionSelectorController>();
-        targetSelector = FindObjectOfType<TargetSelector>(); // Находим TargetSelector
+        targetSelector = FindObjectOfType<TargetSelector>();
         if (combatManager != null)
         {
             allUnits = combatManager.GetAllUnits();
@@ -38,59 +38,29 @@ public class Attack : MonoBehaviour
             Debug.LogError("BattleInterfaceController is null!");
         }
     }
+
     private void OnEnable()
     {
         CancelAttack();
     }
-    public void OnAttackButtonClicked() // Теперь public и не static
+
+    public void OnAttackButtonClicked()
     {
         if (targetSelector != null)
         {
             targetSelector.InitializeTargets(true);
-              currentUnit = GetCurrentUnitData(actionSelectorController.currentUnitID);
-             targetSelector.isSelectingTarget = true;
-           Debug.Log($"Attack selected, selecting target");
+            currentUnit = GetCurrentUnitData(actionSelectorController.currentUnitID);
+            targetSelector.isSelectingTarget = true;
+            targetSelector.selectedAbility = null;
+            targetSelector.selectedItem = null;
+            Debug.Log($"Attack selected, selecting target");
         }
         else
         {
             Debug.LogError("TargetSelector is null");
         }
     }
-     public void ApplyDamageToTarget()
-    {
-        // Apply damage to the target
-        if (_selectedTarget != null && currentUnit != null)
-        {
-            bool isCrit = currentUnit.CalculateCrit();
-            _selectedTarget.TakeDamage(currentUnit.attackDamage, currentUnit.attackType, currentUnit.unitName, isCrit);
-            Debug.Log($"Attack Target Unit '{_selectedTarget.unitName}', ID {_selectedTarget.unitID}, Type: {currentUnit.attackType}");
-        }
-        else
-        {
-            Debug.LogWarning("Target Unit or Current Unit is null!");
-        }
-    }
-    private void Update()
-    {
-        if (isSelectingTarget && Input.GetKeyDown(KeyCode.Return))
-        {
-             HandleTargetSelection();
-              isSelectingTarget = false;
-        }
-    }
-    private void HandleTargetSelection()
-    {
-          if (targetSelector != null && targetSelector.SelectedTarget != null)
-        {
-            // Мы уже вызываем ApplyDamageToTarget в TargetSelector.ConfirmTarget
-              _selectedTarget = targetSelector.SelectedTarget;
-           }
-           else
-           {
-               CancelAttack();
-               Debug.LogWarning("Target clicked has no UnitData Component");
-           }
-    }
+
     private UnitData GetCurrentUnitData(int unitId)
     {
         if (allUnits != null)
@@ -106,21 +76,7 @@ public class Attack : MonoBehaviour
         Debug.LogWarning($"No unit found with ID {unitId}");
         return null;
     }
-    public void EndTurn(UnitData target = null)
-    {
-        if (combatManager != null)
-        {
-            combatManager.EndTurn(target);
-            if (actionSelectorController != null)
-            {
-                actionSelectorController.HideActionSelector();
-            }
-        }
-        else
-        {
-            Debug.LogError("CombatManager is null!");
-        }
-    }
+
     public void CancelAttack()
     {
         isSelectingTarget = false;

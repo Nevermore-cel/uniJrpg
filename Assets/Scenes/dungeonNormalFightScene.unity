@@ -2703,6 +2703,20 @@ MonoBehaviour:
     description: 
     quantity: 0
   actionSelectorController: {fileID: 153263262}
+  damageEffectPrefab: {fileID: 6614220328323676231, guid: 9316cb8ceb3caa64d87797623107b65a,
+    type: 3}
+  fireDamageColor: {r: 1, g: 0, b: 0, a: 1}
+  iceDamageColor: {r: 0, g: 0, b: 1, a: 1}
+  lightningDamageColor: {r: 1, g: 0.999083, b: 0.015686274, a: 1}
+  lightDamageColor: {r: 1, g: 1, b: 1, a: 1}
+  darkDamageColor: {r: 0.48508072, g: 0, b: 1, a: 1}
+  pureDamageColor: {r: 1, g: 0.8237302, b: 0, a: 1}
+  piercingDamageColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  slashingDamageColor: {r: 0, g: 1, b: 0, a: 1}
+  bludgeoningDamageColor: {r: 1, g: 0.41093177, b: 0, a: 1}
+  windDamageColor: {r: 0, g: 1, b: 1, a: 1}
+  attackDamageColor: {r: 1, g: 1, b: 1, a: 1}
+  healColor: {r: 0, g: 1, b: 0, a: 1}
 --- !u!4 &911082748
 Transform:
   m_ObjectHideFlags: 0

@@ -12,13 +12,28 @@ public class TargetSelector : MonoBehaviour
     public Attack attack;
     public bool isSelectingTarget = false;
     public AbilityData selectedAbility;
-    public ItemData selectedItem; // Add this
-    public ActionSelectorController actionSelectorController; // Добавляем ссылку на ActionSelectorController
+    public ItemData selectedItem;
+    public ActionSelectorController actionSelectorController;
+
+    [Header("Effects")]
+    public GameObject damageEffectPrefab;
+    public Color fireDamageColor = Color.red;
+    public Color iceDamageColor = Color.blue;
+    public Color lightningDamageColor = Color.yellow;
+    public Color lightDamageColor = Color.white;
+    public Color darkDamageColor = Color.black;
+    public Color pureDamageColor = Color.magenta;
+    public Color piercingDamageColor = Color.gray;
+    public Color slashingDamageColor = Color.green;
+    public Color bludgeoningDamageColor = Color.black;
+    public Color windDamageColor = Color.cyan;
+    public Color attackDamageColor = Color.white;
+    public Color healColor = Color.green;
 
     void Start()
     {
         combatManager = FindObjectOfType<CombatManager>();
-        actionSelectorController = FindObjectOfType<ActionSelectorController>();// Находим ActionSelectorController
+        actionSelectorController = FindObjectOfType<ActionSelectorController>();
         if (combatManager == null)
         {
             Debug.LogError("CombatManager is null!");
@@ -72,59 +87,72 @@ public class TargetSelector : MonoBehaviour
         Debug.Log($"Selected target: {selectableTargets[currentTargetIndex].unitName}, ID: {selectableTargets[currentTargetIndex].unitID}");
     }
 
-      public void ConfirmTarget()
+    public void ConfirmTarget()
     {
-        
-         if (!isSelectingTarget)
+
+        if (!isSelectingTarget)
         {
             Debug.LogWarning("Не в режиме выбора цели");
             return;
         }
-        if (_selectedTarget == null ) // Added attack != null check
+        if (_selectedTarget == null)
         {
-            Debug.LogWarning("Нет выбранной цели или способности");
+            Debug.LogWarning("Нет выбранной цели");
             return;
         }
-              // Get current Unit
-                UnitData currentUnit = GetCurrentUnitData(actionSelectorController.currentUnitID);
-                if (currentUnit == null)
-                {
-                    Debug.LogWarning($"Unit with ID {actionSelectorController.currentUnitID} not found!");
-                    return;
-                }
-                 if(selectedAbility != null){
-                     if (currentUnit.CanUseAbility(selectedAbility))
-                    {
-                         currentUnit.DeductActionPoints(selectedAbility.cost);
-                        bool isCrit = currentUnit.CalculateCrit(); // Calculate crit for ability use
-                         _selectedTarget.ApplyAbilityEffect(selectedAbility, isCrit); // Pass isCrit
 
-                     }
-                }
-                else if(selectedItem != null){
-                       if (currentUnit.CanUseItem(selectedItem))
-                    {
-                           currentUnit.UseItem(selectedItem, _selectedTarget); 
-                           bool isCrit = currentUnit.CalculateCrit(); // Calculate crit for item use
-                           _selectedTarget.ApplyItemEffect(selectedItem, _selectedTarget, isCrit); // Pass isCrit
-                    }
-                }
-            
-            
-             Debug.Log($"{currentUnit.unitName} Attack {_selectedTarget.unitName}, ID: {_selectedTarget.unitID}");
-              isSelectingTarget = false;
-              combatManager.EndTurn();
-              actionSelectorController.HideActionSelector();
+        UnitData currentUnit = GetCurrentUnitData(actionSelectorController.currentUnitID);
+        if (currentUnit == null)
+        {
+            Debug.LogWarning($"Unit with ID {actionSelectorController.currentUnitID} not found!");
+            return;
+        }
+
+        if (selectedAbility != null)
+        {
+            if (currentUnit.CanUseAbility(selectedAbility))
+            {
+                currentUnit.DeductActionPoints(selectedAbility.cost);
+                bool isCrit = currentUnit.CalculateCrit();
+
+                SpawnDamageEffect(_selectedTarget.transform.position, GetDamageColor(selectedAbility.typeAction));
+
+                _selectedTarget.ApplyAbilityEffect(selectedAbility, isCrit);
+            }
+        }
+        else if (selectedItem != null)
+        {
+            if (currentUnit.CanUseItem(selectedItem))
+            {
+                currentUnit.UseItem(selectedItem, _selectedTarget);
+                bool isCrit = currentUnit.CalculateCrit();
+
+                SpawnDamageEffect(_selectedTarget.transform.position, GetDamageColor(selectedItem.typeAction));
+
+                _selectedTarget.ApplyItemEffect(selectedItem, _selectedTarget, isCrit);
+            }
+        }
+        else
+        {
+            bool isCrit = currentUnit.CalculateCrit();
+            SpawnDamageEffect(_selectedTarget.transform.position, GetDamageColor(currentUnit.attackType)); // Анимация для обычной атаки
+
+            _selectedTarget.TakeDamage(currentUnit.attackDamage, currentUnit.attackType, currentUnit.unitName, isCrit); //  Используем attackType из currentUnit
+        }
+
+
+        Debug.Log($"{currentUnit.unitName} Attack {_selectedTarget.unitName}, ID: {_selectedTarget.unitID}");
+        isSelectingTarget = false;
+        combatManager.EndTurn();
+        actionSelectorController.HideActionSelector();
     }
 
     private void HighlightTarget(UnitData target)
     {
-        //  Добавь визуальный эффект выделения (например, изменение цвета, контур)
         Debug.Log($"Highlighting target: {target.unitName}");
     }
     private void RemoveHighlight(UnitData target)
     {
-        //  Удаление визуальный эффект выделения
         Debug.Log($"RemoveHighlight: {target.unitName}");
     }
     private UnitData GetCurrentUnitData(int unitId)
@@ -142,5 +170,51 @@ public class TargetSelector : MonoBehaviour
         }
         Debug.LogWarning($"No unit found with ID {unitId}");
         return null;
+    }
+
+    private void SpawnDamageEffect(Vector3 position, Color color)
+    {
+        if (damageEffectPrefab != null)
+        {
+            GameObject effectInstance = Instantiate(damageEffectPrefab, position, Quaternion.identity);
+            Renderer renderer = effectInstance.GetComponent<Renderer>();
+
+            if (renderer != null)
+            {
+                Material newMaterial = new Material(Shader.Find("Standard"));
+                newMaterial.color = color;
+                renderer.material = newMaterial;
+            }
+            else
+            {
+                Debug.LogWarning("Damage effect prefab doesn't have a Renderer!");
+            }
+
+            Destroy(effectInstance, 2f);
+        }
+        else
+        {
+            Debug.LogWarning("Damage effect prefab is not assigned!");
+        }
+    }
+
+    private Color GetDamageColor(ActionType type)
+    {
+        switch (type)
+        {
+            case ActionType.fire: return fireDamageColor;
+            case ActionType.ice: return iceDamageColor;
+            case ActionType.lightning: return lightningDamageColor;
+            case ActionType.light: return lightDamageColor;
+            case ActionType.dark: return darkDamageColor;
+            case ActionType.pure: return pureDamageColor;
+            case ActionType.piercing: return piercingDamageColor;
+            case ActionType.slashing: return slashingDamageColor;
+            case ActionType.bludgeoning: return bludgeoningDamageColor;
+            case ActionType.wind: return windDamageColor;
+            case ActionType.attack: return attackDamageColor;
+            case ActionType.heal: return healColor;
+            default: return Color.white;
+        }
     }
 }
