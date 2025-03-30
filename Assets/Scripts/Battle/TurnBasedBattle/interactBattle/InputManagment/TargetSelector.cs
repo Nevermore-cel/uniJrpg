@@ -30,6 +30,12 @@ public class TargetSelector : MonoBehaviour
     public Color attackDamageColor = Color.white;
     public Color healColor = Color.green;
 
+    [Header("Target Indicator")]
+    public GameObject targetIndicatorPrefab;
+    public float indicatorOffsetY = 1.5f;
+
+    private GameObject currentIndicatorInstance;
+
     void Start()
     {
         combatManager = FindObjectOfType<CombatManager>();
@@ -57,6 +63,8 @@ public class TargetSelector : MonoBehaviour
         HighlightTarget(selectableTargets[currentTargetIndex]);
         _selectedTarget = selectableTargets[currentTargetIndex];
         attack._selectedTarget = _selectedTarget;
+
+        ShowTargetIndicator(_selectedTarget);
     }
 
     public void SelectNextTarget()
@@ -68,6 +76,8 @@ public class TargetSelector : MonoBehaviour
         HighlightTarget(selectableTargets[currentTargetIndex]);
         _selectedTarget = selectableTargets[currentTargetIndex];
         attack._selectedTarget = _selectedTarget;
+
+        ShowTargetIndicator(_selectedTarget);
         Debug.Log($"Selected target: {selectableTargets[currentTargetIndex].unitName}, ID: {selectableTargets[currentTargetIndex].unitID}");
     }
 
@@ -84,6 +94,8 @@ public class TargetSelector : MonoBehaviour
         HighlightTarget(selectableTargets[currentTargetIndex]);
         _selectedTarget = selectableTargets[currentTargetIndex];
         attack._selectedTarget = _selectedTarget;
+
+        ShowTargetIndicator(_selectedTarget);
         Debug.Log($"Selected target: {selectableTargets[currentTargetIndex].unitName}, ID: {selectableTargets[currentTargetIndex].unitID}");
     }
 
@@ -135,24 +147,26 @@ public class TargetSelector : MonoBehaviour
         else
         {
             bool isCrit = currentUnit.CalculateCrit();
-            SpawnDamageEffect(_selectedTarget.transform.position, GetDamageColor(currentUnit.attackType)); // Анимация для обычной атаки
+            SpawnDamageEffect(_selectedTarget.transform.position, GetDamageColor(currentUnit.attackType));
 
-            _selectedTarget.TakeDamage(currentUnit.attackDamage, currentUnit.attackType, currentUnit.unitName, isCrit); //  Используем attackType из currentUnit
+            _selectedTarget.TakeDamage(currentUnit.attackDamage, currentUnit.attackType, currentUnit.unitName, isCrit);
         }
-
 
         Debug.Log($"{currentUnit.unitName} Attack {_selectedTarget.unitName}, ID: {_selectedTarget.unitID}");
         isSelectingTarget = false;
+        HideTargetIndicator();
         combatManager.EndTurn();
         actionSelectorController.HideActionSelector();
     }
 
     private void HighlightTarget(UnitData target)
     {
+        ShowTargetIndicator(target);
         Debug.Log($"Highlighting target: {target.unitName}");
     }
     private void RemoveHighlight(UnitData target)
     {
+        HideTargetIndicator();
         Debug.Log($"RemoveHighlight: {target.unitName}");
     }
     private UnitData GetCurrentUnitData(int unitId)
@@ -172,7 +186,7 @@ public class TargetSelector : MonoBehaviour
         return null;
     }
 
-      private void SpawnDamageEffect(Vector3 position, Color color)
+    private void SpawnDamageEffect(Vector3 position, Color color)
     {
         if (damageEffectPrefab != null)
         {
@@ -181,14 +195,8 @@ public class TargetSelector : MonoBehaviour
 
             if (renderer != null)
             {
-                 //  Получаем существующий материал из Renderer
-                Material existingMaterial = renderer.material;
-
-                //  Создаем новый материал на основе существующего
-                Material newMaterial = new Material(existingMaterial);
-                newMaterial.color = color; //  Устанавливаем цвет
-
-                //  Присваиваем материал Renderer'у
+                Material newMaterial = new Material(Shader.Find("Standard"));
+                newMaterial.color = color;
                 renderer.material = newMaterial;
             }
             else
@@ -221,6 +229,34 @@ public class TargetSelector : MonoBehaviour
             case ActionType.attack: return attackDamageColor;
             case ActionType.heal: return healColor;
             default: return Color.white;
+        }
+    }
+
+    private void ShowTargetIndicator(UnitData target)
+    {
+        if (targetIndicatorPrefab == null || target == null)
+        {
+            Debug.LogWarning("Target indicator prefab is not assigned or target is null!");
+            return;
+        }
+
+        if (currentIndicatorInstance != null)
+        {
+            Destroy(currentIndicatorInstance);
+        }
+
+        Vector3 indicatorPosition = target.transform.position + Vector3.up * indicatorOffsetY;
+
+        currentIndicatorInstance = Instantiate(targetIndicatorPrefab, indicatorPosition, Quaternion.identity);
+        currentIndicatorInstance.transform.SetParent(target.transform, true);
+    }
+
+    private void HideTargetIndicator()
+    {
+        if (currentIndicatorInstance != null)
+        {
+            Destroy(currentIndicatorInstance);
+            currentIndicatorInstance = null;
         }
     }
 }
