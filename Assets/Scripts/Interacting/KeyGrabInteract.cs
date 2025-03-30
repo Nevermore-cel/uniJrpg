@@ -5,7 +5,7 @@ public class KeyGrabInteract : MonoBehaviour, IInteractable
     [SerializeField] private string interactText = "Pick Up Key";
     [SerializeField] private string actionText = "Grab";
     [SerializeField] private float interactionRange = 2f;
-    [SerializeField] private KeyData keyToGrab;
+    [SerializeField] public KeyData keyToGrab;
 
     public string GetInteractText()
     {
@@ -28,6 +28,8 @@ public class KeyGrabInteract : MonoBehaviour, IInteractable
         if (keyInventory != null)
         {
             keyInventory.AddKey(keyToGrab);
+            // Сохраняем информацию о подобранном ключе
+            SceneData.MarkObjectAsDestroyed(gameObject.scene.name, keyToGrab.keyColor);
             Destroy(gameObject); // Уничтожаем объект ключа после подбора
         }
         else

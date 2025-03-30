@@ -16,6 +16,7 @@ public class SceneKeyInventoryManager : MonoBehaviour
         }
 
         LoadKeyInventory();
+        CheckDestroyedKeys();
     }
 
     private void LoadKeyInventory()
@@ -64,5 +65,20 @@ public class SceneKeyInventoryManager : MonoBehaviour
             }
         }
         return null;
+    }
+    private void CheckDestroyedKeys()
+    {
+        string sceneName = gameObject.scene.name;
+        KeyGrabInteract[] keys = FindObjectsOfType<KeyGrabInteract>();
+
+        foreach (KeyGrabInteract key in keys)
+        {
+            if (key.GetComponent<KeyGrabInteract>() == null) continue;
+            KeyData keyData = key.GetComponent<KeyGrabInteract>().keyToGrab;
+            if (keyData != null && SceneData.IsObjectDestroyed(sceneName, keyData.keyColor))
+            {
+                Destroy(key.gameObject); // Уничтожаем ключ, если он уже был подобран
+            }
+        }
     }
 }

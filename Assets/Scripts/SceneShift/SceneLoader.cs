@@ -32,6 +32,9 @@ public class SceneLoader : MonoBehaviour
         }
         // Сохраняем состояние уничтоженных объектов
          SaveDestroyedObjectsState(currentSceneName);
+        // Сохраняем состояние дверей
+         // SaveDoorStates(currentSceneName);  <-- Убрали ручной вызов OnDestroy()
+
         // Сначала подписываемся на событие, затем начинаем загрузку
         SceneManager.sceneLoaded += StartScene.OnSceneLoaded;
         AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(enemyData.nextSceneName);

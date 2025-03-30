@@ -172,7 +172,7 @@ public class TargetSelector : MonoBehaviour
         return null;
     }
 
-    private void SpawnDamageEffect(Vector3 position, Color color)
+      private void SpawnDamageEffect(Vector3 position, Color color)
     {
         if (damageEffectPrefab != null)
         {
@@ -181,8 +181,14 @@ public class TargetSelector : MonoBehaviour
 
             if (renderer != null)
             {
-                Material newMaterial = new Material(Shader.Find("Standard"));
-                newMaterial.color = color;
+                 //  Получаем существующий материал из Renderer
+                Material existingMaterial = renderer.material;
+
+                //  Создаем новый материал на основе существующего
+                Material newMaterial = new Material(existingMaterial);
+                newMaterial.color = color; //  Устанавливаем цвет
+
+                //  Присваиваем материал Renderer'у
                 renderer.material = newMaterial;
             }
             else

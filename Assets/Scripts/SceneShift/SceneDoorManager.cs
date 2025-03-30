@@ -47,7 +47,7 @@ public class SceneDoorManager : MonoBehaviour
         }
     }
 
-     void OnDestroy()
+    public void OnDestroy()
     {
         SaveDoorStates();
     }
