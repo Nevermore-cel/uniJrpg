@@ -5,7 +5,7 @@ using UnityEngine;
 public class DoorButtonInteract : MonoBehaviour, IInteractable
 {
     [SerializeField] private string interactText = "Open Door";
-    [SerializeField] private string closeInteractText = "Close Door"; // Text when door is open
+    [SerializeField] private string closeInteractText = "Close Door"; // текст для закрытия двери
     [SerializeField] private string actionText = "Press";
     [SerializeField] private float interactionRange = 3f;
     [SerializeField] private DoorController doorToOpen; // Ссылка на скрипт двери
@@ -16,7 +16,7 @@ public class DoorButtonInteract : MonoBehaviour, IInteractable
     
     public string GetInteractText()
     {
-        return _isDoorOpen ? closeInteractText : interactText; // Change interaction text based on door state
+        return _isDoorOpen ? closeInteractText : interactText; // меняет текст интеракции
     }
 
     public string GetActionText()

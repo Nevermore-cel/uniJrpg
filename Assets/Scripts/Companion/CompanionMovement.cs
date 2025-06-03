@@ -4,134 +4,133 @@ using UnityEngine.SceneManagement;
 
 public class CompanionMovement : MonoBehaviour
 {
-    public Transform playerTransform; // Reference to the player's transform
-    public float speed = 3.0f; // Movement speed
-    public float stoppingDistance = 0.5f; // Distance at which to stop moving
-    public float patrolRange = 2.0f; // Patrol range around the player
-    public float companionSpacing = 1f; // Spacing between companions
+    public Transform playerTransform; // Ссылка на трансформ игрока
+    public float speed = 3.0f; // Скорость движения
+    public float stoppingDistance = 0.5f; // Дистанция остановки
+    public float patrolRange = 2.0f; // Радиус патрулирования вокруг игрока
+    public float companionSpacing = 1f; // Расстояние между компаньонами
 
     public NavMeshAgent navMeshAgent;
-    private bool hasReachedFirstPatrolPoint = false; // Flag to indicate if the companion has reached the first patrol point
-    private bool hasPatrolPoint = false; // Flag to indicate if the companion has a patrol point assigned
+    private bool hasReachedFirstPatrolPoint = false; // Флаг достижения первой точки патрулирования
+    private bool hasPatrolPoint = false; // Флаг наличия активной точки патрулирования
     private const int MAX_RANDOM_POINT_ATTEMPTS = 10;
 
-    private Vector3 lastPlayerPosition; // Last known position of the player
-    private bool playerStopped = false; // Flag to indicate if the player has stopped moving
-     private bool _isInitialized = false;
+    private Vector3 lastPlayerPosition; // Последняя зафиксированная позиция игрока
+    private bool playerStopped = false; // Флаг остановки игрока
+    private bool _isInitialized = false;
 
-        private int _companionIndex; // Index of this companion
+    private int _companionIndex; // Индекс текущего компаньона
+
     void Awake()
     {
-    // Вычисляем индекс компаньона на основе имени объекта
-         string[] nameParts = gameObject.name.Split('(');
-          if(nameParts.Length > 1){
-             string indexPart = nameParts[1].TrimEnd(')');
-              if(int.TryParse(indexPart, out int index)){
-                  _companionIndex = index;
-              }
-          }
+        // Вычисление индекса компаньона из имени объекта
+        string[] nameParts = gameObject.name.Split('(');
+        if(nameParts.Length > 1)
+        {
+            string indexPart = nameParts[1].TrimEnd(')');
+            if(int.TryParse(indexPart, out int index))
+            {
+                _companionIndex = index;
+            }
+        }
     }
+
     void Start()
     {
         if(_isInitialized) return;
-         navMeshAgent = GetComponent<NavMeshAgent>();
+        navMeshAgent = GetComponent<NavMeshAgent>();
         navMeshAgent.speed = speed;
         navMeshAgent.stoppingDistance = stoppingDistance;
 
-       string currentSceneName = SceneManager.GetActiveScene().name;
-        // Проверяем, является ли это возвратом на сцену
+        string currentSceneName = SceneManager.GetActiveScene().name;
+        // Проверка возврата на предыдущую сцену
         if (SceneData.PlayerPositions.ContainsKey(currentSceneName) && SceneData.previousScene != "")
         {
-            // Вычисляем позицию для телепортации со смещением
-                Vector3 offsetPosition = SceneData.PlayerPositions[currentSceneName] +
-                                  (Quaternion.Euler(0, 45f*_companionIndex, 0) * Vector3.left* companionSpacing) ;
-                // Телепортируем компаньона к позиции игрока со смещением
-                transform.position = offsetPosition;
+            // Расчет позиции телепортации со смещением
+            Vector3 offsetPosition = SceneData.PlayerPositions[currentSceneName] +
+                              (Quaternion.Euler(0, 45f*_companionIndex, 0) * Vector3.left* companionSpacing);
+            // Телепортация к позиции игрока
+            transform.position = offsetPosition;
 
-
-             // Сбрасываем флаги и состояние компаньона
-             ResetCompanionState();
+            // Сброс состояния компаньона
+            ResetCompanionState();
         }
         lastPlayerPosition = playerTransform.position;
-       _isInitialized = true;
+        _isInitialized = true;
     }
-     private void ResetCompanionState()
+
+    private void ResetCompanionState()
     {
         hasReachedFirstPatrolPoint = false;
         hasPatrolPoint = false;
         playerStopped = false;
         navMeshAgent.isStopped = false;
-         navMeshAgent.ResetPath();
+        navMeshAgent.ResetPath();
         Debug.Log("Companion state reset");
     }
 
-
-void Update()
-{
-    // Check if the player has stopped moving
-    if (Vector3.Distance(playerTransform.position, lastPlayerPosition) < 0.1f)
+    void Update()
     {
-        playerStopped = true;
-    }
-    else
-    {
-        playerStopped = false;
-        lastPlayerPosition = playerTransform.position;
-    }
-
-    // Check if the companion has reached its current destination
-    if (navMeshAgent.remainingDistance <= navMeshAgent.stoppingDistance)
-    {
-        // Check if the companion has reached the first patrol point
-        if (!hasReachedFirstPatrolPoint)
+        // Проверка движения игрока
+        if (Vector3.Distance(playerTransform.position, lastPlayerPosition) < 0.1f)
         {
-            hasReachedFirstPatrolPoint = true;
-            navMeshAgent.isStopped = true; // Stop the companion at the first patrol point
-            Debug.Log("Companion has reached the first patrol point");
+            playerStopped = true;
         }
         else
         {
-            // Companion has reached a patrol point, reset the flag
-            hasPatrolPoint = false;
+            playerStopped = false;
+            lastPlayerPosition = playerTransform.position;
         }
-    }
 
-    // Check if the player has moved out of the patrol range and the companion has reached the first patrol point
-    if (!playerStopped && Vector3.Distance(playerTransform.position, transform.position) > patrolRange && hasReachedFirstPatrolPoint)
-    {
-        // Start patrolling around the player
-        Patrol();
-    }
-}
-
-    // Patrol around the player
-    private void Patrol()
-{
-    if (!hasPatrolPoint)
-    {
-        Vector3 point;
-        if (RandomPoint(playerTransform.position, patrolRange, out point))
+        // Обработка достижения точки назначения
+        if (navMeshAgent.remainingDistance <= navMeshAgent.stoppingDistance)
         {
-            // Check if the point is accessible for NavMeshAgent
-            NavMeshPath path = new NavMeshPath();
-            if (navMeshAgent.isOnNavMesh && NavMesh.CalculatePath(transform.position, point, NavMesh.AllAreas, path))
+            if (!hasReachedFirstPatrolPoint)
             {
-                navMeshAgent.SetDestination(point);
-                navMeshAgent.isStopped = false; // Ensure the NavMeshAgent is not stopped
-                hasPatrolPoint = true; // Set the flag to indicate that the companion has a patrol point assigned
-                Debug.Log("Companion is patrolling");
+                hasReachedFirstPatrolPoint = true;
+                navMeshAgent.isStopped = true; // Остановка у первой точки
+                Debug.Log("Companion has reached the first patrol point");
             }
             else
             {
-                Debug.Log("Point is not accessible for NavMeshAgent");
+                hasPatrolPoint = false; // Сброс флага точки патрулирования
             }
         }
-        else
+
+        // Проверка дистанции для начала патрулирования
+        if (!playerStopped && Vector3.Distance(playerTransform.position, transform.position) > patrolRange && hasReachedFirstPatrolPoint)
         {
-            Debug.Log("No valid point found");
+            Patrol();
         }
     }
-}
+
+    // Логика патрулирования
+    private void Patrol()
+    {
+        if (!hasPatrolPoint)
+        {
+            Vector3 point;
+            if (RandomPoint(playerTransform.position, patrolRange, out point))
+            {
+                NavMeshPath path = new NavMeshPath();
+                if (navMeshAgent.isOnNavMesh && NavMesh.CalculatePath(transform.position, point, NavMesh.AllAreas, path))
+                {
+                    navMeshAgent.SetDestination(point);
+                    navMeshAgent.isStopped = false;
+                    hasPatrolPoint = true;
+                    Debug.Log("Companion is patrolling");
+                }
+                else
+                {
+                    Debug.Log("Point is not accessible for NavMeshAgent");
+                }
+            }
+            else
+            {
+                Debug.Log("No valid point found");
+            }
+        }
+    }
 
     private bool RandomPoint(Vector3 center, float range, out Vector3 result)
     {

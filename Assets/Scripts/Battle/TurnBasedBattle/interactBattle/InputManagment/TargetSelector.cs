@@ -224,7 +224,6 @@ public class TargetSelector : MonoBehaviour
             case ActionType.pure: return pureDamageColor;
             case ActionType.piercing: return piercingDamageColor;
             case ActionType.slashing: return slashingDamageColor;
-            case ActionType.bludgeoning: return bludgeoningDamageColor;
             case ActionType.wind: return windDamageColor;
             case ActionType.attack: return attackDamageColor;
             case ActionType.heal: return healColor;

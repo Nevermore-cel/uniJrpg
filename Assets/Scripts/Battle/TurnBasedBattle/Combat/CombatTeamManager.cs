@@ -17,27 +17,31 @@ public class CombatTeamManager
         combatManager.playerTeam.Clear();
         combatManager.enemyTeam.Clear();
 
-        GameObject[] playerObjects = GameObject.FindGameObjectsWithTag(playerTag);
-        GameObject[] companionObjects = GameObject.FindGameObjectsWithTag(companionTag);
-        GameObject[] enemyObjects = GameObject.FindGameObjectsWithTag(enemyTag);
+        combatManager.playerTeam = FindUnitsByTag(playerTag, companionTag);
+        combatManager.enemyTeam = FindUnitsByTag(enemyTag);
 
-        AddUnitsToList(playerObjects, combatManager.playerTeam);
-        AddUnitsToList(companionObjects, combatManager.playerTeam);
-        AddUnitsToList(enemyObjects, combatManager.enemyTeam);
+        combatManager.allUnits.AddRange(combatManager.playerTeam);
+        combatManager.allUnits.AddRange(combatManager.enemyTeam);
     }
 
-    private void AddUnitsToList(GameObject[] objects, List<UnitData> team)
+    private List<UnitData> FindUnitsByTag(params string[] tags)
     {
-        foreach (GameObject obj in objects)
+        List<UnitData> units = new List<UnitData>();
+        foreach (string tag in tags)
         {
-            UnitData unit = obj.GetComponent<UnitData>();
-            if (unit != null)
+            GameObject[] objects = GameObject.FindGameObjectsWithTag(tag);
+            foreach (GameObject obj in objects)
             {
-                combatManager.allUnits.Add(unit);
-                team.Add(unit);
+                UnitData unit = obj.GetComponent<UnitData>();
+                if (unit != null)
+                {
+                    units.Add(unit);
+                }
             }
         }
+        return units;
     }
+
     public void ResetDamageReductionForPlayerTeam(List<UnitData> playerTeam)
     {
         foreach (UnitData unit in playerTeam)
@@ -49,8 +53,11 @@ public class CombatTeamManager
         }
         Debug.Log("Damage reduction reset for the player team.");
     }
+
     public bool IsPlayerOrCompanion(UnitData unit)
     {
         return unit.gameObject.CompareTag(combatManager.playerTag) || unit.gameObject.CompareTag(combatManager.companionTag);
     }
+
+
 }

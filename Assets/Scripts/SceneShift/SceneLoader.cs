@@ -15,7 +15,7 @@ public class SceneLoader : MonoBehaviour
         SceneData.PlayerRotations[currentSceneName] = playerTransform.rotation;
         SceneData.previousScene = currentSceneName;
 
-        // Убедитесь, что статические поля очищены перед установкой новых значений
+        
         StartScene.prefabToSpawn = enemyData.EnemyPrefab;
         StartScene.spawnCount = enemyData.EnemyCount;
         StartScene.SpawnTag = enemyData.SpawnTag;
@@ -33,13 +33,13 @@ public class SceneLoader : MonoBehaviour
         // Сохраняем состояние уничтоженных объектов
          SaveDestroyedObjectsState(currentSceneName);
         // Сохраняем состояние дверей
-         // SaveDoorStates(currentSceneName);  <-- Убрали ручной вызов OnDestroy()
+         // SaveDoorStates(currentSceneName);  <--  ручной вызов OnDestroy()
 
         // Сначала подписываемся на событие, затем начинаем загрузку
         SceneManager.sceneLoaded += StartScene.OnSceneLoaded;
         AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(enemyData.nextSceneName);
 
-        // Убрать блокировку активации сцены, если она не нужна
+        // Убрать блокировку активации сцены, если она уже не нужна
         asyncLoad.allowSceneActivation = true;
     }
        private void SavePickedUpKeysState(string sceneName, List<KeyData> collectedKeys)

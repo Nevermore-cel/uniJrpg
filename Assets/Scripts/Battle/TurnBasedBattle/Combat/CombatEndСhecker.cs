@@ -1,7 +1,7 @@
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Collections.Generic;
+using System.Linq;
 
 public class CombatEndChecker
 {
@@ -11,30 +11,46 @@ public class CombatEndChecker
     {
         _combatManager = combatManager;
     }
-    public bool CheckCombatEnd(List<UnitData> playerTeam, List<UnitData> enemyTeam, ActionSelectorController actionSelectorController, string previousSceneName) // Добавляем параметр
+
+    public bool CheckCombatEnd(List<UnitData> playerTeam, List<UnitData> enemyTeam, ActionSelectorController actionSelectorController, string previousSceneName)
     {
-        if (playerTeam.All(unit => unit.currentHealth <= 0))
+        if (TeamDefeated(playerTeam))
         {
-            _combatManager.EndCombat("Враги победили!");
-            ReturnToPreviousScene(previousSceneName); // Передаем название сцены
+            EndCombat("Враги победили!", previousSceneName);
             return true;
         }
-        if (enemyTeam.All(unit => unit.currentHealth <= 0))
+        if (TeamDefeated(enemyTeam))
         {
-            _combatManager.EndCombat("Игроки победили!");
-            ReturnToPreviousScene(previousSceneName); // Передаем название сцены
+            EndCombat("Игроки победили!", previousSceneName);
             return true;
         }
         return false;
     }
+
+    private bool TeamDefeated(List<UnitData> team)
+    {
+        return team.All(unit => unit.currentHealth <= 0);
+    }
+
+    private void EndCombat(string message, string nextScene)
+    {
+        _combatManager.EndCombat(message);
+        ReturnToPreviousScene(nextScene);
+    }
+
     private void ReturnToPreviousScene(string nextScene)
     {
-        // Сохраняем позицию и поворот игрока перед переходом
-        string currentSceneName = SceneManager.GetActiveScene().name;
-        Transform playerTransform = GameObject.FindGameObjectWithTag("Player").transform;
-        SceneData.PlayerPositions[currentSceneName] = playerTransform.position;
-        SceneData.PlayerRotations[currentSceneName] = playerTransform.rotation;
-        SceneData.previousScene = currentSceneName;
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        {
+            Transform playerTransform = player.transform;
+            SceneData.SavePlayerTransform(SceneManager.GetActiveScene().name, playerTransform);
+        }
+        else
+        {
+            Debug.LogWarning("No Player object found in the scene.");
+        }
+
         SceneManager.LoadScene(nextScene);
     }
 }

@@ -29,7 +29,6 @@ public class UnitData : MonoBehaviour
     public float currentCritChance;
     public bool _isCrit;
 
-    //Event for position changes
     public delegate void PositionChangedHandler(Vector3 newPosition);
     public event PositionChangedHandler OnPositionChanged;
     private Vector3 _previousPosition;
@@ -109,7 +108,7 @@ public class UnitData : MonoBehaviour
         return isActive;
     }
 
-    // Inventory Methods (Only for Player)
+    // Inventory Methods 
     public void InitializeItemQuantities()
     {
         itemQuantities.Clear();

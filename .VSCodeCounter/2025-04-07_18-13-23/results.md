@@ -1,0 +1,21 @@
+# Summary
+
+Date : 2025-04-07 18:13:23
+
+Directory g:\\github\\uniJrpg\\Assets\\Editor
+
+Total : 1 files,  179 codes, 9 comments, 26 blanks, all 214 lines
+
+Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
+
+## Languages
+| language | files | code | comment | blank | total |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| C# | 1 | 179 | 9 | 26 | 214 |
+
+## Directories
+| path | files | code | comment | blank | total |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| . | 1 | 179 | 9 | 26 | 214 |
+
+Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-details.md)

@@ -215,7 +215,7 @@ public class AbilityItemCreator
         float yOffset = 0;
         float itemHeight = 20f;
 
-        // Get player UnitData if this is a companion
+    
         UnitData playerUnitData = unitData.playerUnitData != null ? unitData.playerUnitData : unitData;
 
         for (int i = 0; i < items.Count; i++)

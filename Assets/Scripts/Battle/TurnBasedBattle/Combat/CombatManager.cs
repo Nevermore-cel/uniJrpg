@@ -24,8 +24,13 @@ public class CombatManager : MonoBehaviour
 
     private bool isCombatActive = false;
 
-    public int playerTeamTurns; // Добавлено
-    public int enemyTeamTurns;   // Добавлено
+    [SerializeField]
+    private int playerTeamTurns; // Добавлено
+    [SerializeField]
+    private int enemyTeamTurns;   // Добавлено
+
+    public int PlayerTeamTurns { get => playerTeamTurns; set => playerTeamTurns = value; }
+    public int EnemyTeamTurns { get => enemyTeamTurns; set => enemyTeamTurns = value; }
 
     void Awake()
     {
@@ -34,6 +39,7 @@ public class CombatManager : MonoBehaviour
         unitAction = new CombatUnitAction(this);
         endChecker = new CombatEndChecker(this);
     }
+
     void Start()
     {
         StartCoroutine(InitializeCombat());
@@ -58,19 +64,21 @@ public class CombatManager : MonoBehaviour
         Debug.Log("Combat Started!");
         StartTurn();
     }
+
     public bool CheckCombatEnd()
     {
-        if (endChecker.CheckCombatEnd(playerTeam, enemyTeam, actionSelectorController, previousSceneName)) // Передаем название сцены
+        if (endChecker.CheckCombatEnd(playerTeam, enemyTeam, actionSelectorController, previousSceneName))
         {
             return true;
         }
         return false;
     }
+
     public void StartTurn()
     {
         if (!isCombatActive) return;
 
-        if (endChecker.CheckCombatEnd(playerTeam, enemyTeam, actionSelectorController, previousSceneName)) return;
+        if (CheckCombatEnd()) return;
 
         UnitData currentUnit = turnManager.GetCurrentUnit();
         if (currentUnit == null)
@@ -87,58 +95,52 @@ public class CombatManager : MonoBehaviour
         }
         else
         {
-            ResetDamageReductionForPlayerTeam();
-            List<UnitData> aliveUnits = GetAliveUnits();
-            SimulateAction(currentUnit, aliveUnits);
+            teamManager.ResetDamageReductionForPlayerTeam(playerTeam);
+            SimulateEnemyAction(currentUnit);
             EndTurn();
         }
     }
-    private void SimulateAction(UnitData unit, List<UnitData> aliveUnits)
+
+    private void SimulateEnemyAction(UnitData unit)
     {
+        List<UnitData> aliveUnits = GetAliveUnits();
         unitAction.SimulateAction(unit, aliveUnits);
     }
-    private void ResetDamageReductionForPlayerTeam()
-    {
-        teamManager.ResetDamageReductionForPlayerTeam(playerTeam);
-    }
+
     private void StartPlayerTurn(UnitData currentUnit)
     {
-        if (actionSelectorController != null)
-        {
-            actionSelectorController.ClearAllAbilityInfo();
-            actionSelectorController.SetCurrentUnitId(currentUnit.unitID);
-
-            Unit unitComponent = currentUnit.GetComponent<Unit>();
-            if (unitComponent != null)
-            {
-                unitComponent.SetCanBeSelected(false);
-            }
-            else
-            {
-                Debug.LogError("Unit component not found on currentUnit!");
-            }
-
-            if (battleInterfaceController != null)
-            {
-                battleInterfaceController.ShowBattleInterface(currentUnit.unitID, currentUnit.gameObject);
-            }
-            else
-            {
-                Debug.LogError("BattleInterfaceController is null!");
-            }
-            Debug.Log($"Start Turn - {currentUnit.unitName}'s turn");
-        }
-        else
+        if (actionSelectorController == null)
         {
             Debug.LogError("ActionSelectorController is null!");
+            return;
         }
+
+        actionSelectorController.ClearAllAbilityInfo();
+        actionSelectorController.SetCurrentUnitId(currentUnit.unitID);
+
+        Unit unitComponent = currentUnit.GetComponent<Unit>();
+        if (unitComponent == null)
+        {
+            Debug.LogError("Unit component not found on currentUnit!");
+            return;
+        }
+        unitComponent.SetCanBeSelected(false);
+
+        if (battleInterfaceController == null)
+        {
+            Debug.LogError("BattleInterfaceController is null!");
+            return;
+        }
+        battleInterfaceController.ShowBattleInterface(currentUnit.unitID, currentUnit.gameObject);
+        Debug.Log($"Start Turn - {currentUnit.unitName}'s turn");
     }
-    public void EndTurn(UnitData target = null)
+
+    public void EndTurn()
     {
-        UnitData currentUnit = turnManager.GetCurrentUnit();
         turnManager.NextTurn(actionSelectorController, battleInterfaceController);
         StartTurn();
     }
+
     private void DebugAllUnits()
     {
         Debug.Log("--- All Units ---");
@@ -151,6 +153,7 @@ public class CombatManager : MonoBehaviour
         }
         Debug.Log("	");
     }
+
     public void DebugAliveUnits()
     {
         Debug.Log("--- Alive Units ---");
@@ -164,6 +167,7 @@ public class CombatManager : MonoBehaviour
         }
         Debug.Log("	");
     }
+
     public void EndCombat(string winnerMessage)
     {
         isCombatActive = false;
@@ -174,21 +178,24 @@ public class CombatManager : MonoBehaviour
             actionSelectorController.HideActionSelector();
         }
     }
-    public List<UnitData> GetAliveUnits()
-    {
-        return allUnits.Where(unit => unit != null && unit.gameObject.activeInHierarchy && unit.currentHealth > 0).ToList();
-    }
+
     public List<UnitData> GetAllUnits()
     {
         return allUnits;
     }
+
     public void RemoveUnit(UnitData unit)
     {
         allUnits.Remove(unit);
         playerTeam.Remove(unit);
         enemyTeam.Remove(unit);
     }
-    public List<UnitData> GetCurrentTeam()
+
+    public List<UnitData> GetAliveUnits()
+    {
+        return allUnits.Where(unit => unit != null && unit.gameObject.activeInHierarchy && unit.currentHealth > 0).ToList();
+    }
+   public List<UnitData> GetCurrentTeam()
     {
         return turnManager.GetCurrentTeam();
     }

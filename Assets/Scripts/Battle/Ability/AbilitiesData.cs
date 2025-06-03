@@ -11,14 +11,14 @@ public class AbilitiesData : ScriptableObject
 public class AbilityData
 {
     public string abilityName;
-    public int rangeX; // Range по X
-    public int rangeY; // Range по Y
+    public int rangeX;
+    public int rangeY; 
     public int cost;
     public int damage;
     public ActionType typeAction;
     public string description;
 }
-// enum for type action
+
 public enum ActionType
 {
   attack,
@@ -31,6 +31,5 @@ public enum ActionType
   pure,
   piercing,
   slashing,
-  bludgeoning,
   wind,
 }

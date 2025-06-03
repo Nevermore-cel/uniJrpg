@@ -13,15 +13,17 @@ MonoBehaviour:
   m_Name: New Items Data
   m_EditorClassIdentifier: 
   items:
-  - itemName: zip
-    range: 2
+  - itemName: "\u0428\u043E\u043A\u0435\u0440"
+    rangeX: 0
+    rangeY: 0
     cost: 50
     damage: 20
     typeAction: 4
     description: 
     quantity: 4
-  - itemName: zap
-    range: 2
+  - itemName: "\u0418\u0433\u043B\u0430"
+    rangeX: 0
+    rangeY: 0
     cost: 50
     damage: 20
     typeAction: 7

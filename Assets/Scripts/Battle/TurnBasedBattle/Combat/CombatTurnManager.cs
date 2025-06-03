@@ -8,20 +8,21 @@ public class CombatTurnManager
     private int currentUnitIndex = 0;
     private int currentTeamIndex = 0;
     private int totalTurns = 0;
-    private int playerTeamTurns;
-    private int enemyTeamTurns;
+
     public CombatTurnManager(CombatManager manager)
     {
         combatManager = manager;
     }
+
     public void ResetTurns(int playerTurns, int enemyTurns)
     {
         totalTurns = 1;
-        playerTeamTurns = playerTurns;
-        enemyTeamTurns = enemyTurns;
+        combatManager.PlayerTeamTurns = playerTurns;
+        combatManager.EnemyTeamTurns = enemyTurns;
         currentUnitIndex = 0;
         currentTeamIndex = 0;
     }
+
     public UnitData GetCurrentUnit()
     {
         List<UnitData> currentTeam = GetCurrentTeam();
@@ -31,33 +32,34 @@ public class CombatTurnManager
             Debug.Log($"---{GetCurrentTeamName()} team has no units---");
             return null;
         }
+
         UnitData currentUnit = null;
         int attempts = 0; // Prevent infinite loop
-                while (attempts < 500 &&  (currentUnit == null || !currentUnit.gameObject.activeInHierarchy || !currentUnit.IsActive()))
-        {   
-                   currentUnit = currentTeam[currentUnitIndex];
-                    if (currentUnit == null || !currentUnit.gameObject.activeInHierarchy || !currentUnit.IsActive())
+        while (attempts < 500 && (currentUnit == null || !currentUnit.gameObject.activeInHierarchy || !currentUnit.IsActive()))
+        {
+            currentUnit = currentTeam[currentUnitIndex];
+            if (currentUnit == null || !currentUnit.gameObject.activeInHierarchy || !currentUnit.IsActive())
             {
-            currentUnitIndex++;
-              
+                currentUnitIndex++;
+
             }
-               
-                if (currentUnitIndex >= currentTeam.Count)
-                {
-                                currentUnitIndex = 0;
-                }
-                attempts++;
-              if(attempts > 490)
-                {
-                    Debug.LogError("infinite loop");
-                     SwitchToNextTeam();
-                     return null;
-                }
+
+            if (currentUnitIndex >= currentTeam.Count)
+            {
+                currentUnitIndex = 0;
+            }
+            attempts++;
+            if (attempts > 490)
+            {
+                Debug.LogError("infinite loop");
+                SwitchToNextTeam();
+                return null;
+            }
         }
-         if (currentUnit == null || !currentUnit.gameObject.activeInHierarchy || !currentUnit.IsActive())
-         {
-             return null;
-         }
+        if (currentUnit == null || !currentUnit.gameObject.activeInHierarchy || !currentUnit.IsActive())
+        {
+            return null;
+        }
 
         return currentUnit;
     }
@@ -66,16 +68,16 @@ public class CombatTurnManager
     {
         List<UnitData> currentTeam = GetCurrentTeam();
 
-            // Удаляем мертвых юнитов из текущей команды
-            currentTeam.RemoveAll(unit => unit == null || !unit.gameObject.activeInHierarchy || !unit.IsActive());
+        // Удаляем мертвых юнитов из текущей команды
+        currentTeam.RemoveAll(unit => unit == null || !unit.gameObject.activeInHierarchy || !unit.IsActive());
 
         if (currentTeam.Count == 0)
         {
             Debug.Log($"---{GetCurrentTeamName()} team has no units---");
-             SwitchToNextTeam();
+            SwitchToNextTeam();
             return;
         }
-    //  UnitData currentUnit = GetCurrentUnitInternal();
+
 
         currentUnitIndex++;
         if (currentUnitIndex >= currentTeam.Count)
@@ -84,53 +86,54 @@ public class CombatTurnManager
             SwitchToNextTeam();
             return;
         }
-     NextUnit();
+        NextUnit();
 
     }
-           private void NextUnit()
+    private void NextUnit()
     {
-                 List<UnitData> currentTeam = GetCurrentTeam();
+        List<UnitData> currentTeam = GetCurrentTeam();
 
-                    if(currentTeam.Count > 0){
-                      UnitData currentUnit = GetCurrentUnit();
-                            if ( currentUnit != null)
+        if (currentTeam.Count > 0)
+        {
+            UnitData currentUnit = GetCurrentUnit();
+            if (currentUnit != null)
+            {
+                Unit unitComponent = GetCurrentUnit().GetComponent<Unit>();
+                if (unitComponent != null)
+                {
+                    unitComponent.SetCanBeSelected(true);
+                }
+                if (combatManager.battleInterfaceController != null)
+                {
+                    combatManager.battleInterfaceController.HideBattleInterface();
+                }
+                foreach (UnitData unit in combatManager.GetAllUnits())
+                {
+                    Unit unitComponentAll = unit.GetComponent<Unit>();
+                    if (unitComponentAll != null)
                     {
-                        Unit unitComponent = GetCurrentUnit().GetComponent<Unit>();
-                        if (unitComponent != null)
-                        {
-                            unitComponent.SetCanBeSelected(true);
-                        }
-                        if (combatManager.battleInterfaceController != null)
-                        {
-                            combatManager.battleInterfaceController.HideBattleInterface();
-                        }
-                        foreach (UnitData unit in combatManager.GetAllUnits())
-                        {
-                            Unit unitComponentAll = unit.GetComponent<Unit>();
-                            if (unitComponentAll != null)
-                            {
-                                unitComponentAll.SetCanBeSelected(true);
-                            }
-                        }
+                        unitComponentAll.SetCanBeSelected(true);
                     }
+                }
+            }
             totalTurns++; // Увеличиваем счетчик ходов
-       //   combatManager.totalTurns++;
+
         }
     }
-        
+
     private void SwitchToNextTeam()
     {
-       currentUnitIndex = 0;
-           currentTeamIndex = (currentTeamIndex + 1) % 2;
-             if (currentTeamIndex == 0)
-            {
-                combatManager.playerTeamTurns = combatManager.playerTeam.Count;
-            }
-            else
-            {
-                combatManager.enemyTeamTurns = combatManager.enemyTeam.Count;
-            }
-         combatManager.StartTurn();
+        currentUnitIndex = 0;
+        currentTeamIndex = (currentTeamIndex + 1) % 2;
+        if (currentTeamIndex == 0)
+        {
+            combatManager.PlayerTeamTurns = combatManager.playerTeam.Count;
+        }
+        else
+        {
+            combatManager.EnemyTeamTurns = combatManager.enemyTeam.Count;
+        }
+        combatManager.StartTurn();
     }
     private UnitData GetCurrentUnitInternal()
     {

@@ -13,35 +13,35 @@ MonoBehaviour:
   m_Name: AbilitiesData
   m_EditorClassIdentifier: 
   abilities:
-  - abilityName: fire
+  - abilityName: "\u0418\u0441\u043A\u0440\u0430"
     rangeX: 1
     rangeY: 1
     cost: 12
     damage: 15
     typeAction: 2
     description: 
-  - abilityName: frost
+  - abilityName: "\u041B\u0435\u0434"
     rangeX: 1
     rangeY: 1
     cost: 11
     damage: 100
     typeAction: 3
     description: 
-  - abilityName: frosty
+  - abilityName: "\u0421\u043D\u0435\u0436\u0438\u043D\u043A\u0430"
     rangeX: 1
     rangeY: 2
     cost: 11
     damage: 25
     typeAction: 3
     description: 
-  - abilityName: firety
+  - abilityName: "\u041F\u043B\u0430\u043C\u044F"
     rangeX: 2
     rangeY: 2
     cost: 11
     damage: 25
     typeAction: 2
     description: 
-  - abilityName: heal
+  - abilityName: "\u041B\u0435\u0447\u0435\u043D\u0438\u0435"
     rangeX: 1
     rangeY: 1
     cost: 11
